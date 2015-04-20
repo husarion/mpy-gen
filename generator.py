@@ -57,33 +57,6 @@ def genMethodHeader(cl, method):
 	s = "mp_obj_t {objName}_{funcName}({args})".format(objName=cl["name"], funcName=method["name"], args=", ".join(args))
 	return s
 
-def genMethod(cl, method):
-	funcName = method["name"]
-
-	s = ""
-	s += genMethodHeader(cl, method) + " {\n"
-	
-	s += "\tmp_obj_{objName}_t *self = (mp_obj_{objName}_t*)self_in;\n".format(objName=cl["name"])
-	s += "\t{objName} *hSelf = ({objName}*)self->hObj;\n".format(objName=cl["name"])
-
-	i = 0
-	argsList = []
-	for arg in method["args"]:
-		if arg == "int":
-			s += "\tmp_int_t val{0} = mp_obj_get_int(arg{0});\n".format(i)
-		argsList.append("val{0}".format(i))
-		i += 1
-
-	s += "\thSelf->{funcName}({args});\n".format(funcName=funcName, args=", ".join(argsList))
-	
-	s += """
-	return mp_const_none;
-""".format()
-
-	s += "}\n"
-
-	return s
-
 def genMethodsHeaders(ctx):
 	s = """
 #ifdef __cplusplus

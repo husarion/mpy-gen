@@ -1,6 +1,6 @@
 #!/usr/bin/python2.7
 import subprocess, json, os, sys
-import parser, generator
+import parser, generator, func_generator
 
 data = open("info").read()
 
@@ -67,7 +67,7 @@ for cl in ctx.objClasses:
 	# print(t)
 	print()
 	for m in cl["methods"]:
-		t = generator.genMethod(cl, m)
+		t = func_generator.genMethod(cl, m)
 		srcCPP.write(t.encode("ascii"))
 		# print(t)
 	# print(t)
