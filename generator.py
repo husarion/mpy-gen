@@ -9,7 +9,10 @@ def findQstrs(ctx):
 		for m in cl.methods:
 			qstrs.append(m.name)
 	
+	qstrs = set(qstrs)
 	qstrs.remove("sys")
+	qstrs.remove("write")
+	qstrs.remove("read")
 
 	return qstrs
 
@@ -111,6 +114,12 @@ typedef struct _mp_obj_{name}_t
 	void *hObj;
 }} mp_obj_{name}_t;
 """.format(name=name)
+
+def genObjTypesExterns(ctx):
+	s = "\n"
+	for cl in ctx.objClasses:
+		s += "extern const mp_obj_type_t {name}_type;\n".format(name=cl.name)
+	return s
 
 def genObjType(name):
 	return """

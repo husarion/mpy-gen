@@ -49,6 +49,9 @@ header.write(t.encode("ascii"))
 t = generator.genMethodsHeaders(ctx)
 header.write(t.encode("ascii"))
 
+t = generator.genObjTypesExterns(ctx)
+header.write(t.encode("ascii"))
+
 # for cl in ctx.objClasses:
 	# t = generator.genObjStruct(cl.name)
 	# header.write(t.encode("ascii"))
@@ -73,6 +76,7 @@ for cl in ctx.objClasses:
 srcCPP.write("""
 #include "hPyFramework.h"
 #include <hFramework.h>
+#include <stdio.h>
 
 using namespace hFramework;
 

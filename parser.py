@@ -53,10 +53,10 @@ class ParserContext:
 	def addGlobal(self, o):
 		self.objGlobals.append(o)
 
-	def findClass(self, cl):
-		for c in self.objClasses:
-			if c["name"] == cl["name"]:
-				return c
+	def findClass(self, name):
+		for cl in self.objClasses:
+			if cl.name == name:
+				return cl
 		return None
 
 def genTree(ctx, txt):
@@ -83,6 +83,10 @@ def genTree(ctx, txt):
 			curObj = Class()
 			curObj.name = objName
 			curObj.methods = []
+
+			if len(parts) == 2:
+				baseClass = ctx.findClass(parts[1])
+				curObj.methods += baseClass.methods
 
 		if cmd == "method":
 			if curObj is None:

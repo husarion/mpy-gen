@@ -30,7 +30,7 @@ def genMethod(cl, method):
 	i = 1
 	for arg in method.args:
 		if method.needArrayCall():
-			s += "\tif (n_args >= {0})\n\t".format(i + 1)
+			s += "\tif (n_args >= {0}) {{\n\t".format(i + 1)
 
 		dstVar = "val{0}".format(i)
 
@@ -42,30 +42,46 @@ def genMethod(cl, method):
 		if arg.type == "int":
 			s += "\t{dstVar} = mp_obj_get_int({srcVar});\n".format(dstVar=dstVar, srcVar=srcVar)
 		if arg.type == "bool":
-			s += "\t{dstVar} = ({srcVar} == mp_const_true);\n".format(dstVar=dstVar, srcVar=srcVar)
+			s += """
+	if(MP_OBJ_IS_TYPE({srcVar}, &mp_type_bool))
+		{dstVar} = ({srcVar} == mp_const_true);
+	else if(MP_OBJ_IS_INT({srcVar}))
+		{dstVar} = mp_obj_get_int({srcVar}) != 0;
+""".format(dstVar=dstVar, srcVar=srcVar)
+		if method.needArrayCall():
+			s += "\t}\n"
 		i += 1
 
 	s += "\n"
 
 	retType = method.returnType
 	retStr = ""
+	customType = retType[0] == "h" or retType[0] == "I"
+	isRef = retType[-1] == "&"
+	retType = retType.rstrip("&")
+
 	if retType != "void":
-		s += "\t{0} ret;\n".format(retType)
-		retStr = "ret = "
+		if customType and isRef:
+			s += "\t{0}* ret;\n".format(retType)
+		else:
+			s += "\t{0} ret;\n".format(retType)
+
+		if isRef:
+			retStr = "ret = &"
+		else:
+			retStr = "ret = "
 
 	if method.needArrayCall():
 		minArgs = method.getMinArgs()
 		maxArgs = method.getMaxArgs()
 		first = True
 		for i in range(minArgs, maxArgs + 1):
-			print(i)
 			argsList = genArgsCallList(method, i)
 			s += "\t"
 			if not first:
 				s += "else "
 			s += "if (n_args == {0})\n".format(i + 1)
 			s += "\t\t{retStr}hSelf->{funcName}({args});\n".format(retStr=retStr, funcName=funcName, args=", ".join(argsList))
-			print(argsList)
 			first = False
 
 	else:
@@ -78,12 +94,19 @@ def genMethod(cl, method):
 		s += "\treturn mp_obj_new_int(ret);\n"
 	elif retType == "bool":
 		s += "\treturn ret ? mp_const_true : mp_const_false;\n"
+	elif customType:
+		s += """
+	mp_obj_hObject_t *v = m_new_obj_var(mp_obj_hObject_t, char*, 0);
+	v->hObj = ret;
+	v->base.type = &{type}_type;
+	return v;
+""".format(type=retType.rstrip("&"))
 	else:
 		raise Exception("Unsupported return type")
 
 	s += "}\n"
 
-	if method.name=="rotAbs":
+	if method.name=="write":
 		print(s)
 
 	return s
