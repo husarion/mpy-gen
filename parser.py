@@ -84,9 +84,10 @@ def genTree(ctx, txt):
 			curObj.name = objName
 			curObj.methods = []
 
-			if len(parts) == 2:
-				baseClass = ctx.findClass(parts[1])
-				curObj.methods += baseClass.methods
+			if len(parts) >= 2:
+				for p in parts[1:]:
+					baseClass = ctx.findClass(p)
+					curObj.methods += baseClass.methods
 
 		if cmd == "method":
 			if curObj is None:

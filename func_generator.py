@@ -30,7 +30,7 @@ def genMethod(cl, method):
 	i = 1
 	for arg in method.args:
 		if method.needArrayCall():
-			s += "\tif (n_args >= {0}) {{\n\t".format(i + 1)
+			s += "\tif (n_args >= {0})\n\t".format(i + 1)
 
 		dstVar = "val{0}".format(i)
 
@@ -42,17 +42,12 @@ def genMethod(cl, method):
 		if arg.type == "int":
 			s += "\t{dstVar} = mp_obj_get_int({srcVar});\n".format(dstVar=dstVar, srcVar=srcVar)
 		if arg.type == "bool":
-			s += """
-	if(MP_OBJ_IS_TYPE({srcVar}, &mp_type_bool))
-		{dstVar} = ({srcVar} == mp_const_true);
-	else if(MP_OBJ_IS_INT({srcVar}))
-		{dstVar} = mp_obj_get_int({srcVar}) != 0;
-""".format(dstVar=dstVar, srcVar=srcVar)
-		if method.needArrayCall():
-			s += "\t}\n"
+			s += "\t{dstVar} = mp_obj_is_true({srcVar});\n".format(dstVar=dstVar, srcVar=srcVar)
+		# if method.needArrayCall():
+			# s += "\t}\n"
 		i += 1
 
-	s += "\n"
+	# s += "\n"
 
 	retType = method.returnType
 	retStr = ""
