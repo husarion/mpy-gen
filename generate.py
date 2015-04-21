@@ -2,16 +2,18 @@
 import subprocess, json, os, sys
 import parser, generator, func_generator
 
-data = open("info").read()
+pyDir = os.path.dirname(os.path.realpath(__file__ + "/../"))
+
+data = open(pyDir+"/src/exports").read()
 
 ctx = parser.ParserContext()
 parser.genTree(ctx, data)
 
 qstrs = generator.findQstrs(ctx)
 
-header = open("gen.h", "wb")
-srcC = open("gen.c", "wb")
-srcCPP = open("gen.cpp", "wb")
+header = open(pyDir+"/src/hPyFramework.h", "wb")
+srcC = open(pyDir+"/src/hPyFramework.c", "wb")
+srcCPP = open(pyDir+"/src/hPyFramework.cpp", "wb")
 
 # HEADER
 header.write("""
@@ -53,7 +55,7 @@ header.write(t.encode("ascii"))
 
 # C
 srcC.write("""
-#include "gen.h"
+#include "hPyFramework.h"
 
 """.lstrip().encode("ascii"))
 
@@ -69,7 +71,7 @@ for cl in ctx.objClasses:
 
 # CPP
 srcCPP.write("""
-#include "gen.h"
+#include "hPyFramework.h"
 #include <hFramework.h>
 
 using namespace hFramework;

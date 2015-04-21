@@ -35,6 +35,6 @@ def genMethod(cl, method):
 
 	s += "}\n"
 
-	print(s)
+	# print(s)
 
 	return s
