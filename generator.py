@@ -1,4 +1,4 @@
-import qdef
+import qdef, func_generator
 
 def findQstrs(ctx):
 	qstrs = []
@@ -50,7 +50,14 @@ qstr_pool_t hpyframework_pool =
 """
 	return s
 
+def genConstructorHeader(cl):
+	return "mp_obj_t {type}_constructor(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args)".format(
+		type=cl.name)
+
 def genMethodHeader(cl, method):
+	if method.constructor:
+		return genConstructorHeader(cl)
+
 	args = ["mp_obj_t self_in"]
 	if method.needArrayCall():
 		s = "mp_obj_t {objName}_{funcName}(uint n_args, const mp_obj_t *args)".format(
@@ -65,18 +72,17 @@ def genMethodHeader(cl, method):
 	return s
 
 def genMethodsHeaders(ctx):
-	s = """
-#ifdef __cplusplus
-extern "C" {
-#endif"""
+	s = "\n"
 	for cl in ctx.objClasses:
 		for method in cl.methods:
 			s += "\n" + genMethodHeader(cl, method) + ";"
-	s += """
-#ifdef __cplusplus
-}
-#endif
-"""
+	return s
+
+def genConstructorsHeaders(ctx):
+	s = "\n"
+	for cl in ctx.objClasses:
+		if cl.constructor:
+			s += "\n" + func_generator.genConstructorHeader(cl) + ";"
 	return s
 
 def genMethodsTable(cl):
@@ -121,7 +127,11 @@ def genObjTypesExterns(ctx):
 		s += "extern const mp_obj_type_t {name}_type;\n".format(name=cl.name)
 	return s
 
-def genObjType(name):
+def genObjType(cl):
+	new = "0"
+	if cl.constructor:
+		new = "&{name}_constructor".format(name=cl.name)
+
 	return """
 STATIC MP_DEFINE_CONST_DICT({name}_locals_dict, {name}_locals_dict_table);
 const mp_obj_type_t {name}_type =
@@ -129,9 +139,10 @@ const mp_obj_type_t {name}_type =
 	.base = {{ &mp_type_type }},
 	.name = MP_QSTR_{name},
 	.print = 0,
+	.make_new = {new},
 	.locals_dict = (mp_obj_t)&{name}_locals_dict,
 }};
-""".format(name=name)
+""".format(name=cl.name, new=new)
 
 def genReg(ctx):
 	s = "\n"

@@ -46,15 +46,27 @@ typedef struct _mp_obj_hObject_t
 t = generator.genQstrEnum(qstrs)
 header.write(t.encode("ascii"))
 
+t = """
+#ifdef __cplusplus
+extern "C" {
+#endif"""
+header.write(t.encode("ascii"))
+
 t = generator.genMethodsHeaders(ctx)
+header.write(t.encode("ascii"))
+
+# t = generator.genConstructorsHeaders(ctx)
+# header.write(t.encode("ascii"))
+
+t = """
+#ifdef __cplusplus
+}
+#endif
+"""
 header.write(t.encode("ascii"))
 
 t = generator.genObjTypesExterns(ctx)
 header.write(t.encode("ascii"))
-
-# for cl in ctx.objClasses:
-	# t = generator.genObjStruct(cl.name)
-	# header.write(t.encode("ascii"))
 
 # C
 srcC.write("""
@@ -69,7 +81,7 @@ for cl in ctx.objClasses:
 	t = generator.genMethodsTable(cl)
 	srcC.write(t.encode("ascii"))
 
-	t = generator.genObjType(cl.name)
+	t = generator.genObjType(cl)
 	srcC.write(t.encode("ascii"))
 
 # CPP
@@ -86,6 +98,10 @@ for cl in ctx.objClasses:
 	for m in cl.methods:
 		t = func_generator.genMethod(cl, m)
 		srcCPP.write(t.encode("ascii"))
+
+	# if cl.constructor:
+		# t = func_generator.genConstructor(cl)
+		# srcCPP.write(t.encode("ascii"))
 
 t = generator.genReg(ctx)
 srcCPP.write(t.encode("ascii"))

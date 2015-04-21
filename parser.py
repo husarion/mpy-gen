@@ -13,14 +13,18 @@ class Class:
 				return
 
 class Arg:
-	type = None
+	type = None # only typename
+	fullType = None # with ref/pointer
 	optional = None
 	defaultValue = None
+	isRef = None
+	customType = None
 
 class Method:
 	name = None
 	returnType = None
 	args = None
+	constructor = None
 
 	def needArrayCall(self):
 		if len(self.args) > 3:
@@ -66,12 +70,6 @@ class ParserContext:
 				return cl
 		return None
 
-def findMethod(methods, name):
-	for m in methods:
-		if m.name == name:
-			return m
-	return None
-
 def genTree(ctx, txt):
 	lines = txt.split("\n")
 
@@ -95,6 +93,7 @@ def genTree(ctx, txt):
 			print("new class", objName)
 			curObj = Class()
 			curObj.name = objName
+			curObj.constructor = False
 			curObj.methods = []
 			curObj.parents = []
 
@@ -115,6 +114,19 @@ def genTree(ctx, txt):
 			objMethod.name = parts[1]
 			objMethod.returnType = parts[0]
 			objMethod.args = parseArgs(parts[2:])
+			objMethod.constructor = False
+
+			curObj.removeMethod(objMethod.name)
+			curObj.methods.append(objMethod)
+
+		if cmd == "constructor":
+			parts = rest.split(":")
+
+			objMethod = Method()
+			objMethod.name = "constructor"
+			objMethod.returnType = "void"
+			objMethod.args = parseArgs(parts[0:])
+			objMethod.constructor = True
 
 			curObj.removeMethod(objMethod.name)
 			curObj.methods.append(objMethod)
@@ -128,12 +140,21 @@ def parseArgs(argsArray):
 	args = []
 	for a in argsArray:
 		arg = Arg()
+		a = a.replace("&", "*")
 		if a[0] == "[" and a[-1] == "]":
-			arg.type = a[1:-1]
+			arg.fullType = a[1:-1]
 			arg.optional = True
 		else:
-			arg.type = a
+			arg.fullType = a
 			arg.optional = False
+
+		arg.customType = arg.fullType[0] == "h" or arg.fullType[0] == "I"
+		if arg.fullType[-1] == "*":
+			arg.isRef = True
+			arg.type = arg.fullType[:-1]
+		else:
+			arg.isRef = False
+			arg.type = arg.fullType
 		args.append(arg)
 	return args
 
