@@ -13,13 +13,11 @@ def findQstrs(ctx):
 
 	return qstrs
 
-def genQstr(qstrs):
-	s = ""
-
-	s += """
+def genQstrEnum(qstrs):
+	s = """
 enum
 {
-	start = MP_QSTR_number_of - 1,
+	start = 0x05000000 - 1,
 """
 	for q in qstrs:
 		s += "\tMP_QSTR_" + q + ",\n"
@@ -31,12 +29,13 @@ enum
 
 def genQstrPool(qstrs):
 	s = """
-const qstr_pool_t hpyframework_pool =
+qstr_pool_t hpyframework_pool =
 {{
-	&const_pool,
-	MP_QSTR_number_of,
+	0,
+	0,
 	3, // set so that the first dynamically allocated pool is twice this size; must be <= the len (just below)
 	{0}, // corresponds to number of strings in array just below
+	0x05000000,
 	{{
 """.format(len(qstrs))
 	for q in qstrs:
@@ -61,11 +60,10 @@ def genMethodsHeaders(ctx):
 	s = """
 #ifdef __cplusplus
 extern "C" {
-#endif
-"""
+#endif"""
 	for cl in ctx.objClasses:
 		for method in cl["methods"]:
-			s += genMethodHeader(cl, method) + ";\n"
+			s += "\n" + genMethodHeader(cl, method) + ";"
 	s += """
 #ifdef __cplusplus
 }
@@ -118,27 +116,25 @@ const mp_obj_type_t {name}_type =
 """.format(name=name)
 
 def genReg(ctx):
-	s = ""
+	s = "\n"
 
 	for cl in ctx.objClasses:
-		s += """
-extern const mp_obj_type_t {name}_type;
-""".format(name=cl["name"]);
+		s += "extern const mp_obj_type_t {name}_type;\n".format(name=cl["name"]);
 
 	s += """
 void reg()
 {
 	qstr_add_const_pool(&hpyframework_pool);
+
+	mp_obj_hObject_t *v;
 """
 
 	for gl in ctx.objGlobals:
 		s += """
-	{{
-		mp_obj_{type}_t *v = m_new_obj_var(mp_obj_{type}_t, char*, 0);
-		v->hObj = &{name};
-		v->base.type = &{type}_type;
-		mp_store_name(MP_QSTR_{name}, (mp_obj_t)v);
-	}}
+	v = m_new_obj_var(mp_obj_hObject_t, char*, 0);
+	v->hObj = &{name};
+	v->base.type = &{type}_type;
+	mp_store_name(MP_QSTR_{name}, (mp_obj_t)v);
 """.format(name=gl["name"], type=gl["type"])
 
 	s += """

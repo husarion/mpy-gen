@@ -4,9 +4,9 @@ def genMethod(cl, method):
 	funcName = method["name"]
 
 	s = ""
-	s += generator.genMethodHeader(cl, method) + " {\n"
+	s += generator.genMethodHeader(cl, method) + "\n{\n"
 	
-	s += "\tmp_obj_{objName}_t *self = (mp_obj_{objName}_t*)self_in;\n".format(objName=cl["name"])
+	s += "\tmp_obj_{objName}_t *self = (mp_obj_{objName}_t*)self_in;\n".format(objName="hObject")
 	s += "\t{objName} *hSelf = ({objName}*)self->hObj;\n".format(objName=cl["name"])
 
 	i = 0
