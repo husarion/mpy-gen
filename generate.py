@@ -50,7 +50,7 @@ t = generator.genMethodsHeaders(ctx)
 header.write(t.encode("ascii"))
 
 # for cl in ctx.objClasses:
-	# t = generator.genObjStruct(cl["name"])
+	# t = generator.genObjStruct(cl.name)
 	# header.write(t.encode("ascii"))
 
 # C
@@ -66,7 +66,7 @@ for cl in ctx.objClasses:
 	t = generator.genMethodsTable(cl)
 	srcC.write(t.encode("ascii"))
 
-	t = generator.genObjType(cl["name"])
+	t = generator.genObjType(cl.name)
 	srcC.write(t.encode("ascii"))
 
 # CPP
@@ -79,7 +79,7 @@ using namespace hFramework;
 """.lstrip().encode("ascii"))
 
 for cl in ctx.objClasses:
-	for m in cl["methods"]:
+	for m in cl.methods:
 		t = func_generator.genMethod(cl, m)
 		srcCPP.write(t.encode("ascii"))
 

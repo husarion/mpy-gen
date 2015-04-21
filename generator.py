@@ -5,8 +5,8 @@ def findQstrs(ctx):
 	for gl in ctx.objGlobals:
 		qstrs.append(gl["name"])
 	for cl in ctx.objClasses:
-		qstrs.append(cl["name"])
-		for m in cl["methods"]:
+		qstrs.append(cl.name)
+		for m in cl.methods:
 			qstrs.append(m.name)
 	
 	qstrs.remove("sys")
@@ -51,14 +51,14 @@ def genMethodHeader(cl, method):
 	args = ["mp_obj_t self_in"]
 	if method.needArrayCall():
 		s = "mp_obj_t {objName}_{funcName}(uint n_args, const mp_obj_t *args)".format(
-				objName=cl["name"], funcName=method.name)
+				objName=cl.name, funcName=method.name)
 	else:
 		i = 1
 		for arg in method.args:
 			args.append("mp_obj_t arg{0}".format(i))
 			i += 1
 		s = "mp_obj_t {objName}_{funcName}({args})".format(
-				objName=cl["name"], funcName=method.name, args=", ".join(args))
+				objName=cl.name, funcName=method.name, args=", ".join(args))
 	return s
 
 def genMethodsHeaders(ctx):
@@ -67,7 +67,7 @@ def genMethodsHeaders(ctx):
 extern "C" {
 #endif"""
 	for cl in ctx.objClasses:
-		for method in cl["methods"]:
+		for method in cl.methods:
 			s += "\n" + genMethodHeader(cl, method) + ";"
 	s += """
 #ifdef __cplusplus
@@ -79,24 +79,24 @@ extern "C" {
 def genMethodsTable(cl):
 	s = "\n"
 
-	for method in cl["methods"]:
+	for method in cl.methods:
 		s += genMethodHeader(cl, method) + ";"
 		s += """
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN({objName}_{funcName}_obj, {argMin}, {argMax}, {objName}_{funcName});
 """.format(
-		objName=cl["name"],
+		objName=cl.name,
 		funcName=method.name,
 		argMin=method.getMinArgs() + 1,
 		argMax=method.getMaxArgs() + 1)
 
 	s += """
 STATIC const mp_map_elem_t {objName}_locals_dict_table[] =
-{{""".format(objName=cl["name"])
+{{""".format(objName=cl.name)
 
-	for method in cl["methods"]:
+	for method in cl.methods:
 		s += """
 	{{ MP_OBJ_NEW_QSTR(MP_QSTR_{funcName}), (mp_obj_t)&{objName}_{funcName}_obj }},
-""".rstrip().format(objName=cl["name"], funcName=method.name)
+""".rstrip().format(objName=cl.name, funcName=method.name)
 
 	s += """
 };"""
@@ -128,7 +128,7 @@ def genReg(ctx):
 	s = "\n"
 
 	for cl in ctx.objClasses:
-		s += "extern const mp_obj_type_t {name}_type;\n".format(name=cl["name"]);
+		s += "extern const mp_obj_type_t {name}_type;\n".format(name=cl.name);
 
 	s += """
 void pyRegister()

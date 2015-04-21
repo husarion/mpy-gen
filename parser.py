@@ -1,7 +1,9 @@
 class GlobalVar:
 	pass
+
 class Class:
-	pass
+	name = None
+	methods = None
 
 class Arg:
 	type = None
@@ -51,6 +53,12 @@ class ParserContext:
 	def addGlobal(self, o):
 		self.objGlobals.append(o)
 
+	def findClass(self, cl):
+		for c in self.objClasses:
+			if c["name"] == cl["name"]:
+				return c
+		return None
+
 def genTree(ctx, txt):
 	lines = txt.split("\n")
 
@@ -72,7 +80,9 @@ def genTree(ctx, txt):
 			parts = rest.split(":")
 			objName = parts[0]
 			print("new class", objName)
-			curObj = { 'type': 'class', 'name': objName, 'methods': [] }
+			curObj = Class()
+			curObj.name = objName
+			curObj.methods = []
 
 		if cmd == "method":
 			if curObj is None:
@@ -85,7 +95,7 @@ def genTree(ctx, txt):
 			objMethod.returnType = parts[0]
 			objMethod.args = parseArgs(parts[2:])
 
-			curObj["methods"].append(objMethod)
+			curObj.methods.append(objMethod)
 
 		if cmd == "endclass":
 			ctx.addClass(curObj)

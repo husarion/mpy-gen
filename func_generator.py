@@ -20,7 +20,7 @@ def genMethod(cl, method):
 	if method.needArrayCall():
 		s += "\tmp_obj_t self_in = args[0];\n"
 	s += "\tmp_obj_{objName}_t *self = (mp_obj_{objName}_t*)self_in;\n".format(objName="hObject")
-	s += "\t{objName} *hSelf = ({objName}*)self->hObj;\n".format(objName=cl["name"])
+	s += "\t{objName} *hSelf = ({objName}*)self->hObj;\n".format(objName=cl.name)
 
 	i = 1
 	for arg in method.args:
