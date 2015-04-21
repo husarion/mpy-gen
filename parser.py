@@ -2,8 +2,32 @@ class GlobalVar:
 	pass
 class Class:
 	pass
+
+class Arg:
+	type = None
+	optional = None
+	defaultValue = None
+
 class Method:
-	pass
+	name = None
+	returnType = None
+	args = None
+
+	def needArrayCall(self):
+		if len(self.args) > 3:
+			return True
+		for a in self.args:
+			if a.optional:
+				return True
+		return False
+	def getMinArgs(self):
+		cnt = 0
+		for a in self.args:
+			if not a.optional:
+				cnt += 1
+		return cnt
+	def getMaxArgs(self):
+		return len(self.args)
 
 def parseLine(line):
 	parts = line.split(":", 1)
@@ -56,11 +80,10 @@ def genTree(ctx, txt):
 
 			parts = rest.split(":")
 
-			objMethod = {
-					'name': parts[1],
-					'returnType': parts[0],
-					'args': parts[2:],
-				}
+			objMethod = Method()
+			objMethod.name = parts[1]
+			objMethod.returnType = parts[0]
+			objMethod.args = parseArgs(parts[2:])
 
 			curObj["methods"].append(objMethod)
 
@@ -68,3 +91,17 @@ def genTree(ctx, txt):
 			ctx.addClass(curObj)
 			curObj = None
 			pass
+
+def parseArgs(argsArray):
+	args = []
+	for a in argsArray:
+		arg = Arg()
+		if a[0] == "[" and a[-1] == "]":
+			arg.type = a[1:-1]
+			arg.optional = True
+		else:
+			arg.type = a
+			arg.optional = False
+		args.append(arg)
+	return args
+

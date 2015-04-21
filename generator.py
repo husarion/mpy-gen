@@ -7,7 +7,7 @@ def findQstrs(ctx):
 	for cl in ctx.objClasses:
 		qstrs.append(cl["name"])
 		for m in cl["methods"]:
-			qstrs.append(m["name"])
+			qstrs.append(m.name)
 	
 	qstrs.remove("sys")
 
@@ -49,11 +49,16 @@ qstr_pool_t hpyframework_pool =
 
 def genMethodHeader(cl, method):
 	args = ["mp_obj_t self_in"]
-	i = 0
-	for arg in method["args"]:
-		args.append("mp_obj_t arg{0}".format(i))
-		i += 1
-	s = "mp_obj_t {objName}_{funcName}({args})".format(objName=cl["name"], funcName=method["name"], args=", ".join(args))
+	if method.needArrayCall():
+		s = "mp_obj_t {objName}_{funcName}(uint n_args, const mp_obj_t *args)".format(
+				objName=cl["name"], funcName=method.name)
+	else:
+		i = 1
+		for arg in method.args:
+			args.append("mp_obj_t arg{0}".format(i))
+			i += 1
+		s = "mp_obj_t {objName}_{funcName}({args})".format(
+				objName=cl["name"], funcName=method.name, args=", ".join(args))
 	return s
 
 def genMethodsHeaders(ctx):
@@ -77,8 +82,12 @@ def genMethodsTable(cl):
 	for method in cl["methods"]:
 		s += genMethodHeader(cl, method) + ";"
 		s += """
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN({objName}_{funcName}_obj, {argn}, {argn}, {objName}_{funcName});
-""".format(objName=cl["name"], funcName=method["name"], argn=len(method["args"]) + 1)
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN({objName}_{funcName}_obj, {argMin}, {argMax}, {objName}_{funcName});
+""".format(
+		objName=cl["name"],
+		funcName=method.name,
+		argMin=method.getMinArgs(),
+		argMax=method.getMaxArgs())
 
 	s += """
 STATIC const mp_map_elem_t {objName}_locals_dict_table[] =
@@ -87,7 +96,7 @@ STATIC const mp_map_elem_t {objName}_locals_dict_table[] =
 	for method in cl["methods"]:
 		s += """
 	{{ MP_OBJ_NEW_QSTR(MP_QSTR_{funcName}), (mp_obj_t)&{objName}_{funcName}_obj }},
-""".rstrip().format(objName=cl["name"], funcName=method["name"])
+""".rstrip().format(objName=cl["name"], funcName=method.name)
 
 	s += """
 };"""
@@ -122,7 +131,7 @@ def genReg(ctx):
 		s += "extern const mp_obj_type_t {name}_type;\n".format(name=cl["name"]);
 
 	s += """
-void reg()
+void pyRegister()
 {
 	qstr_add_const_pool(&hpyframework_pool);
 
