@@ -4,6 +4,13 @@ class GlobalVar:
 class Class:
 	name = None
 	methods = None
+	parents = None
+
+	def removeMethod(self, name):
+		for m in self.methods:
+			if m.name == name:
+				self.methods.remove(m)
+				return
 
 class Arg:
 	type = None
@@ -59,6 +66,12 @@ class ParserContext:
 				return cl
 		return None
 
+def findMethod(methods, name):
+	for m in methods:
+		if m.name == name:
+			return m
+	return None
+
 def genTree(ctx, txt):
 	lines = txt.split("\n")
 
@@ -83,10 +96,13 @@ def genTree(ctx, txt):
 			curObj = Class()
 			curObj.name = objName
 			curObj.methods = []
+			curObj.parents = []
 
 			if len(parts) >= 2:
 				for p in parts[1:]:
 					baseClass = ctx.findClass(p)
+					for m in baseClass.methods:
+						curObj.removeMethod(m.name)
 					curObj.methods += baseClass.methods
 
 		if cmd == "method":
@@ -100,6 +116,7 @@ def genTree(ctx, txt):
 			objMethod.returnType = parts[0]
 			objMethod.args = parseArgs(parts[2:])
 
+			curObj.removeMethod(objMethod.name)
 			curObj.methods.append(objMethod)
 
 		if cmd == "endclass":
