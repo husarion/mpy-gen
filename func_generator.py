@@ -24,19 +24,28 @@ def genMethod(cl, method):
 
 	i = 1
 	for arg in method.args:
-		if arg.type == "int":
-			s += "\tmp_int_t val{0};\n".format(i)
+		s += "\t{0} val{1};\n".format(arg.type, i)
 		i += 1
 
 	i = 1
 	for arg in method.args:
+		if method.needArrayCall():
+			s += "\tif (n_args >= {0})\n\t".format(i + 1)
+
+		dstVar = "val{0}".format(i)
+
+		if method.needArrayCall():
+			srcVar = "args[{0}]".format(i)
+		else:
+			srcVar = "arg{0}".format(i)
+
 		if arg.type == "int":
-			if method.needArrayCall():
-				s += "\tif (n_args >= {0})".format(i + 1)
-				s += " val{0} = mp_obj_get_int(args[{0}]);\n".format(i)
-			else:
-				s += "\tval{0} = mp_obj_get_int(arg{0});\n".format(i)
+			s += "\t{dstVar} = mp_obj_get_int({srcVar});\n".format(dstVar=dstVar, srcVar=srcVar)
+		if arg.type == "bool":
+			s += "\t{dstVar} = ({srcVar} == mp_const_true);\n".format(dstVar=dstVar, srcVar=srcVar)
 		i += 1
+
+	s += "\n"
 
 	retType = method.returnType
 	retStr = ""
@@ -73,8 +82,8 @@ def genMethod(cl, method):
 		raise Exception("Unsupported return type")
 
 	s += "}\n"
-	print(s)
 
-	# print(s)
+	if method.name=="rotAbs":
+		print(s)
 
 	return s
