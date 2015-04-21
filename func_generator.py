@@ -24,8 +24,8 @@ def genMethod(cl, method):
 	if not method.constructor:
 		if method.needArrayCall():
 			s += "\tmp_obj_t self_in = args[0];\n"
-		s += "\tmp_obj_{objName}_t *self = (mp_obj_{objName}_t*)self_in;\n".format(objName="hObject")
-		s += "\t{objName} *hSelf = ({objName}*)self->hObj;\n".format(objName=cl.name)
+		# s += "\tmp_obj_{objName}_t *self = (mp_obj_{objName}_t*)self_in;\n".format(objName="hObject")
+		s += "\t{objName} *hSelf = ({objName}*)(((mp_obj_hObject_t*)self_in)->hObj);\n".format(objName=cl.name)
 
 	# arguments variables
 	i = 1
@@ -40,9 +40,9 @@ def genMethod(cl, method):
 		# if method.constructor:
 			# argOffset = -1
 
-		if method.constructor:
-			s += "\tif (n_args >= {0})\n\t".format(i)
-		elif method.needArrayCall():
+		# if method.constructor:
+			# s += "\tif (n_args >= {0})\n\t".format(i)
+		if method.needArrayCall():
 			s += "\tif (n_args >= {0})\n\t".format(i + 1)
 
 		dstVar = "val{0}".format(i)
