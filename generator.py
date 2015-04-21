@@ -86,8 +86,8 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN({objName}_{funcName}_obj, {argMin}, {
 """.format(
 		objName=cl["name"],
 		funcName=method.name,
-		argMin=method.getMinArgs(),
-		argMax=method.getMaxArgs())
+		argMin=method.getMinArgs() + 1,
+		argMax=method.getMaxArgs() + 1)
 
 	s += """
 STATIC const mp_map_elem_t {objName}_locals_dict_table[] =
