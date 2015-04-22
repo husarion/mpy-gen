@@ -50,13 +50,13 @@ qstr_pool_t hpyframework_pool =
 """
 	return s
 
-def genConstructorHeader(cl):
-	return "mp_obj_t {type}_constructor(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args)".format(
-		type=cl.name)
-
 def genMethodHeader(cl, method):
+	if method.subscript:
+			return "mp_obj_t {type}_subscript(mp_obj_t self_in, mp_obj_t index, mp_obj_t arg1)".format(
+			type=cl.name)
 	if method.constructor:
-		return genConstructorHeader(cl)
+		return "mp_obj_t {type}_constructor(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args)".format(
+			type=cl.name)
 
 	args = ["mp_obj_t self_in"]
 	if method.needArrayCall():
@@ -82,7 +82,7 @@ def genMethodsTable(cl):
 	s = "\n"
 
 	for method in cl.methods:
-		if method.constructor:
+		if method.constructor or method.subscript:
 			continue
 		s += genMethodHeader(cl, method) + ";"
 		s += """
@@ -98,7 +98,7 @@ STATIC const mp_map_elem_t {objName}_locals_dict_table[] =
 {{""".format(objName=cl.name)
 
 	for method in cl.methods:
-		if method.constructor:
+		if not method.isRegularMethod():
 			continue
 		s += """
 	{{ MP_OBJ_NEW_QSTR(MP_QSTR_{funcName}), (mp_obj_t)&{objName}_{funcName}_obj }},
@@ -128,6 +128,9 @@ def genObjType(cl):
 	new = "0"
 	if cl.hasConstructor():
 		new = "&{name}_constructor".format(name=cl.name)
+	sub = "0"
+	if cl.hasSubscript():
+		sub = "&{name}_subscript".format(name=cl.name)
 
 	return """
 STATIC MP_DEFINE_CONST_DICT({name}_locals_dict, {name}_locals_dict_table);
@@ -137,9 +140,10 @@ const mp_obj_type_t {name}_type =
 	.name = MP_QSTR_{name},
 	.print = 0,
 	.make_new = {new},
+	.subscr = {sub},
 	.locals_dict = (mp_obj_t)&{name}_locals_dict,
 }};
-""".format(name=cl.name, new=new)
+""".format(name=cl.name, new=new, sub=sub)
 
 def genReg(ctx):
 	s = "\n"

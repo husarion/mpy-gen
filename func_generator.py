@@ -14,26 +14,8 @@ def genArgsCallList(method, maxArgs):
 
 	return argsList
 
-def genMethod(cl, method):
-	funcName = method.name
-
+def genArgumentCasts(method):
 	s = ""
-	s += generator.genMethodHeader(cl, method) + "\n{\n"
-	
-	# prolog - extracting self object (not in constructors)
-	if not method.constructor:
-		if method.needArrayCall():
-			s += "\tmp_obj_t self_in = args[0];\n"
-		# s += "\tmp_obj_{objName}_t *self = (mp_obj_{objName}_t*)self_in;\n".format(objName="hObject")
-		s += "\t{objName} *hSelf = ({objName}*)(((mp_obj_hObject_t*)self_in)->hObj);\n".format(objName=cl.name)
-
-	# arguments variables
-	i = 1
-	for arg in method.args:
-		s += "\t{0} val{1};\n".format(arg.fullType, i)
-		i += 1
-
-	# casted arguments
 	i = 1
 	for arg in method.args:
 		# argOffset = 0
@@ -66,17 +48,37 @@ def genMethod(cl, method):
 		# if method.needArrayCall():
 			# s += "\t}\n"
 		i += 1
+	return s
 
-	# s += "\n"
+def genMethod(cl, method):
+	funcName = method.name
 
+	s = ""
+	s += generator.genMethodHeader(cl, method) + "\n{\n"
+	
+	# prolog - extracting self object
+	# if method.hasSelf():
+	if method.hasSelf():
+		if method.needArrayCall():
+			s += "\tmp_obj_t self_in = args[0];\n"
+
+		if cl.storeValue:
+			s += "\t{objName} *hSelf = ({objName}*)(&(((mp_obj_hObject_t*)self_in)->hObj));\n".format(objName=cl.name)
+		else:
+			s += "\t{objName} *hSelf = ({objName}*)(((mp_obj_hObject_t*)self_in)->hObj);\n".format(objName=cl.name)
+
+	# arguments variables
+	i = 1
+	for arg in method.args:
+		s += "\t{0} val{1};\n".format(arg.fullType, i)
+		i += 1
+
+	# casted arguments
+	if not method.subscript:
+		s += genArgumentCasts(method)
 
 	# invocation
 	retStr = ""
-	# if method.constructor:
-		# retType = cl.name
-		# customType = True
-		# isRef = True
-	# else:
 	retType = method.returnType
 	customType = retType[0] == "h" or retType[0] == "I"
 	isRef = retType[-1] == "&"
@@ -93,7 +95,7 @@ def genMethod(cl, method):
 		else:
 			retStr = "ret = "
 
-	if not method.constructor:
+	if method.isRegularMethod():
 		if method.needArrayCall():
 			minArgs = method.getMinArgs()
 			maxArgs = method.getMaxArgs()
@@ -106,11 +108,11 @@ def genMethod(cl, method):
 				s += "if (n_args == {0})\n".format(i + 1)
 				s += "\t\t{retStr}hSelf->{funcName}({args});\n".format(retStr=retStr, funcName=funcName, args=", ".join(argsList))
 				first = False
-
 		else:
 			argsList = genArgsCallList(method, method.getMaxArgs())
 			s += "\t{retStr}hSelf->{funcName}({args});\n".format(retStr=retStr, funcName=funcName, args=", ".join(argsList))
-	else:
+
+	elif method.constructor:
 		argsList = genArgsCallList(method, method.getMaxArgs())
 		s += """
 	int size = {type}::constructor_get_size({args});
@@ -120,6 +122,27 @@ def genMethod(cl, method):
 	{type}::constructor(obj, {args});
 """.format(
 				retStr=retStr, funcName=funcName, args=", ".join(argsList), type=cl.name)
+
+	elif method.subscript:
+		casts = genArgumentCasts(method)
+		s += """
+	int indexNum = mp_obj_get_int(index);
+	if (arg1 == MP_OBJ_NULL)
+		return MP_OBJ_NULL;
+
+	if (!{type}::subscript_check_index(hSelf, indexNum))
+		return MP_OBJ_NULL;
+
+	if (arg1 == MP_OBJ_SENTINEL) {{
+		ret = {type}::subscript_get(hSelf, indexNum);
+	}}
+	else {{
+	{casts}
+		{type}::subscript_set(hSelf, indexNum, val1);
+		return mp_const_none;
+	}}
+""".format(
+				retStr=retStr, funcName=funcName, type=cl.name, casts=casts)
 	
 	# processing return value
 	if method.constructor:
@@ -142,5 +165,6 @@ def genMethod(cl, method):
 
 	s += "}\n"
 
-	print(s)
+	if(funcName=="subscript"):
+		print(s)
 	return s

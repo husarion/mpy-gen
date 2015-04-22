@@ -17,6 +17,11 @@ class Class:
 			if m.constructor:
 				return True
 		return False
+	def hasSubscript(self):
+		for m in self.methods:
+			if m.subscript:
+				return True
+		return False
 
 class Arg:
 	type = None # only typename
@@ -31,9 +36,12 @@ class Method:
 	returnType = None
 	args = None
 	constructor = None
+	subscript = None
 
 	def needArrayCall(self):
-		if len(self.args) > 3:
+		if self.subscript:
+			return False
+		if len(self.args) > 2: # self + 2 args
 			return True
 		for a in self.args:
 			if a.optional:
@@ -47,6 +55,10 @@ class Method:
 		return cnt
 	def getMaxArgs(self):
 		return len(self.args)
+	def isRegularMethod(self):
+		return not self.constructor and not self.subscript
+	def hasSelf(self):
+		return not self.constructor
 
 def parseLine(line):
 	parts = line.split(":", 1)
@@ -99,7 +111,7 @@ def genTree(ctx, txt):
 			print("new class", objName)
 			curObj = Class()
 			curObj.name = objName
-			curObj.constructor = False
+			curObj.storeValue = False
 			curObj.methods = []
 			curObj.parents = []
 
@@ -121,6 +133,7 @@ def genTree(ctx, txt):
 			objMethod.returnType = parts[0]
 			objMethod.args = parseArgs(parts[2:])
 			objMethod.constructor = False
+			objMethod.subscript = False
 
 			curObj.removeMethod(objMethod.name)
 			curObj.methods.append(objMethod)
@@ -133,9 +146,26 @@ def genTree(ctx, txt):
 			objMethod.returnType = "void"
 			objMethod.args = parseArgs(parts[0:])
 			objMethod.constructor = True
+			objMethod.subscript = False
 
 			curObj.removeMethod(objMethod.name)
 			curObj.methods.append(objMethod)
+
+		if cmd == "subscript":
+			parts = rest.split(":")
+
+			objMethod = Method()
+			objMethod.name = "subscript"
+			objMethod.returnType = parts[0]
+			objMethod.args = parseArgs([objMethod.returnType])
+			objMethod.constructor = False
+			objMethod.subscript = True
+
+			curObj.removeMethod(objMethod.name)
+			curObj.methods.append(objMethod)
+
+		if cmd == "storevalue":
+			curObj.storeValue = True
 
 		if cmd == "endclass":
 			ctx.addClass(curObj)
