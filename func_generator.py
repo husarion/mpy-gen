@@ -20,7 +20,7 @@ def genMethod(cl, method):
 	s = ""
 	s += generator.genMethodHeader(cl, method) + "\n{\n"
 	
-	# prolog
+	# prolog - extracting self object (not in constructors)
 	if not method.constructor:
 		if method.needArrayCall():
 			s += "\tmp_obj_t self_in = args[0];\n"
@@ -60,7 +60,7 @@ def genMethod(cl, method):
 			s += "\t{dstVar} = mp_obj_is_true({srcVar});\n".format(dstVar=dstVar, srcVar=srcVar)
 
 		if arg.customType:
-			s += "\t{dstVar} = ({type})((mp_obj_hObject_t*){srcVar})->hObj;\n".format(
+			s += "\t{dstVar} = ({type})(&((mp_obj_hObject_t*){srcVar})->hObj);\n".format(
 					dstVar=dstVar, srcVar=srcVar, type=arg.fullType)
 
 		# if method.needArrayCall():
@@ -114,8 +114,9 @@ def genMethod(cl, method):
 		argsList = genArgsCallList(method, method.getMaxArgs())
 		s += """
 	int size = {type}::constructor_get_size({args});
-	mp_obj_hObject_t *v = m_new_obj_var(mp_obj_hObject_t, char*, size);
-	{type}* obj = ({type}*)v->hObj;
+	mp_obj_hObject_t *v = m_new_obj_var(mp_obj_hObject_t, uint8_t, size);
+	v->base.type = (mp_obj_type_t*)type_in;
+	{type}* obj = ({type}*)&v->hObj;
 	{type}::constructor(obj, {args});
 """.format(
 				retStr=retStr, funcName=funcName, args=", ".join(argsList), type=cl.name)
@@ -142,17 +143,4 @@ def genMethod(cl, method):
 	s += "}\n"
 
 	print(s)
-	return s
-
-def genConstructor(cl):
-	s = genConstructorHeader(cl) + "\n{"
-
-	s += """
-	// mp_obj_hObject_t *v;
-	// v = m_new_obj_var(mp_obj_hObject_t, char*, 0);
-	// v->hObj = &{name};
-	// v->base.type = &{type}_type;
-	// return v;
-}
-"""
 	return s

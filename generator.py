@@ -78,17 +78,12 @@ def genMethodsHeaders(ctx):
 			s += "\n" + genMethodHeader(cl, method) + ";"
 	return s
 
-def genConstructorsHeaders(ctx):
-	s = "\n"
-	for cl in ctx.objClasses:
-		if cl.constructor:
-			s += "\n" + func_generator.genConstructorHeader(cl) + ";"
-	return s
-
 def genMethodsTable(cl):
 	s = "\n"
 
 	for method in cl.methods:
+		if method.constructor:
+			continue
 		s += genMethodHeader(cl, method) + ";"
 		s += """
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN({objName}_{funcName}_obj, {argMin}, {argMax}, {objName}_{funcName});
@@ -103,6 +98,8 @@ STATIC const mp_map_elem_t {objName}_locals_dict_table[] =
 {{""".format(objName=cl.name)
 
 	for method in cl.methods:
+		if method.constructor:
+			continue
 		s += """
 	{{ MP_OBJ_NEW_QSTR(MP_QSTR_{funcName}), (mp_obj_t)&{objName}_{funcName}_obj }},
 """.rstrip().format(objName=cl.name, funcName=method.name)
@@ -129,7 +126,7 @@ def genObjTypesExterns(ctx):
 
 def genObjType(cl):
 	new = "0"
-	if cl.constructor:
+	if cl.hasConstructor():
 		new = "&{name}_constructor".format(name=cl.name)
 
 	return """
@@ -156,12 +153,16 @@ void pyRegister()
 	qstr_add_const_pool(&hpyframework_pool);
 
 	mp_obj_hObject_t *v;
+
 """
+
+	for cl in ctx.objClasses:
+		s += "\tmp_store_name(MP_QSTR_{name}, (mp_obj_t)&{name}_type);\n".format(name=cl.name)
 
 	for gl in ctx.objGlobals:
 		s += """
 	v = m_new_obj_var(mp_obj_hObject_t, char*, 0);
-	v->hObj = &{name};
+	v->hObj = dynamic_cast<{type}*>(&{name});
 	v->base.type = &{type}_type;
 	mp_store_name(MP_QSTR_{name}, (mp_obj_t)v);
 """.format(name=gl["name"], type=gl["type"])

@@ -11,6 +11,12 @@ class Class:
 			if m.name == name:
 				self.methods.remove(m)
 				return
+	
+	def hasConstructor(self):
+		for m in self.methods:
+			if m.constructor:
+				return True
+		return False
 
 class Arg:
 	type = None # only typename
