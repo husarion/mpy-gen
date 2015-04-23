@@ -1,3 +1,5 @@
+import re
+
 class GlobalVar:
 	pass
 
@@ -30,6 +32,18 @@ class Arg:
 	defaultValue = None
 	isRef = None
 	customType = None
+	subType = None # for lists
+	dir = None # in, out, inout
+
+	def isIn(self):
+		return self.dir == "in" or self.dir == "inout"
+	def isOut(self):
+		return self.dir == "out" or self.dir == "inout"
+
+	def __eq__(self, other):
+		return self.type == other
+	def __nq__(self, other):
+		return not self.__eq__(other)
 
 class Method:
 	name = None
@@ -130,7 +144,7 @@ def genTree(ctx, txt):
 
 			objMethod = Method()
 			objMethod.name = parts[1]
-			objMethod.returnType = parts[0]
+			objMethod.returnType = parseRetType(parts[0])
 			objMethod.args = parseArgs(parts[2:])
 			objMethod.constructor = False
 			objMethod.subscript = False
@@ -143,7 +157,7 @@ def genTree(ctx, txt):
 
 			objMethod = Method()
 			objMethod.name = "constructor"
-			objMethod.returnType = "void"
+			objMethod.returnType = parseRetType("void")
 			objMethod.args = parseArgs(parts[0:])
 			objMethod.constructor = True
 			objMethod.subscript = False
@@ -156,8 +170,8 @@ def genTree(ctx, txt):
 
 			objMethod = Method()
 			objMethod.name = "subscript"
-			objMethod.returnType = parts[0]
-			objMethod.args = parseArgs([objMethod.returnType])
+			objMethod.returnType = parseRetType(parts[0])
+			objMethod.args = [objMethod.returnType]
 			objMethod.constructor = False
 			objMethod.subscript = True
 
@@ -172,6 +186,8 @@ def genTree(ctx, txt):
 			curObj = None
 			pass
 
+def parseRetType(ret):
+	return parseArgs([ret])[0]
 def parseArgs(argsArray):
 	args = []
 	for a in argsArray:
@@ -191,6 +207,14 @@ def parseArgs(argsArray):
 		else:
 			arg.isRef = False
 			arg.type = arg.fullType
+
+		m = re.match("(.*)\[(.*),(.*)\]", arg.fullType)
+		if m:
+			arg.fullType = m.group(1)
+			arg.type = m.group(1)
+			arg.subType = m.group(2)
+			arg.dir = m.group(3)
+
 		args.append(arg)
 	return args
 

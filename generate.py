@@ -92,6 +92,8 @@ srcCPP.write("""
 
 using namespace hFramework;
 
+typedef unsigned char byte;
+
 """.lstrip().encode("ascii"))
 
 for cl in ctx.objClasses:
