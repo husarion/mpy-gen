@@ -17,7 +17,7 @@ def genArgsCallList(method, maxArgs):
 
 	return argsList
 
-def genSimpleTypeCast(type, srcVar, dstVar, lvl=1):
+def genSimpleTypeCast(type, srcVar, dstVar, lvl=0):
 	s = "\t" * lvl
 	if type == "int":
 		s += "{dstVar} = mp_obj_get_int({srcVar});\n".format(dstVar=dstVar, srcVar=srcVar)
@@ -29,7 +29,7 @@ def genSimpleTypeCast(type, srcVar, dstVar, lvl=1):
 		return ""
 	return s
 
-def genSimpleTypeCastReverse(type, srcVar, dstVar, lvl=1):
+def genSimpleTypeCastReverse(type, srcVar, dstVar, lvl=0):
 	s = "\t" * lvl
 	if type == "int":
 		s += "{dstVar} = mp_obj_new_int({srcVar});\n".format(dstVar=dstVar, srcVar=srcVar)
@@ -41,55 +41,61 @@ def genSimpleTypeCastReverse(type, srcVar, dstVar, lvl=1):
 		return ""
 	return s
 
+def genArgumentCast(method, arg, i, tabLvl):
+	s = ""
+	dstVar = "val{0}".format(i)
+
+	if method.constructor:
+		srcVar = "args[{0}]".format(i - 1)
+	elif method.needArrayCall():
+		srcVar = "args[{0}]".format(i)
+	else:
+		srcVar = "arg{0}".format(i)
+
+	s += genSimpleTypeCast(type=arg.type, dstVar=dstVar, srcVar=srcVar)
+	if arg.type == "buffer":
+		array_var = "val{idx}_array".format(idx=i)
+		array_len_var = "val{idx}_array_len".format(idx=i)
+
+		castStr = genSimpleTypeCast(
+				type=arg.subType,
+				dstVar="{array}[i]".format(array=array_var),
+				srcVar="val{idx}->items[i]".format(idx=i))
+
+		s += "{dstVar} = (mp_obj_list_t*){srcVar};\n".format(dstVar=dstVar, srcVar=srcVar)
+		s += """{array_len} = {dstVar}->len;
+{array} = ({subType}*)sys.malloc(sizeof({subType}) * {array_len});
+""".format(dstVar=dstVar, subType=arg.subType, array=array_var, array_len=array_len_var).rstrip()
+
+		if arg.isIn():
+			s += "\nfor (int i = 0; i < {array_len}; i++)\n\t{castStr}".format(
+					array_len=array_len_var, castStr=castStr).rstrip()
+		
+		s += "\n"
+
+	if arg.customType:
+		s += "{dstVar} = ({type})(&((mp_obj_hObject_t*){srcVar})->hObj);\n".format(
+				dstVar=dstVar, srcVar=srcVar, type=arg.fullType)
+	
+	s = s.strip("\n")
+	s = "\n".join(["\t" * tabLvl + line for line in s.split("\n")])
+	if len(s) > 0:
+		s += "\n"
+	return s
+
 def genArgumentsCasts(method):
 	s = ""
 	i = 1
 	for arg in method.args:
-		# argOffset = 0
-		# if method.constructor:
-			# argOffset = -1
 
-		# if method.constructor:
-			# s += "\tif (n_args >= {0})\n\t".format(i)
 		if method.needArrayCall():
-			s += "\tif (n_args >= {0})\n\t".format(i + 1)
-
-		dstVar = "val{0}".format(i)
-
-		if method.constructor:
-			srcVar = "args[{0}]".format(i - 1)
-		elif method.needArrayCall():
-			srcVar = "args[{0}]".format(i)
+			s += "\tif (n_args >= {0}) {{\n".format(i + 1)
+			s += genArgumentCast(method, arg, i, 2)
 		else:
-			srcVar = "arg{0}".format(i)
+			s += genArgumentCast(method, arg, i, 1)
 
-		s += genSimpleTypeCast(type=arg.type, dstVar=dstVar, srcVar=srcVar)
-		if arg.type == "buffer":
-			array_var = "val{idx}_array".format(idx=i)
-			array_len_var = "val{idx}_array_len".format(idx=i)
-
-			castStr = genSimpleTypeCast(
-					arg.subType,
-					dstVar="{array}[i]".format(array=array_var),
-					srcVar="val{idx}->items[i]".format(idx=i))
-
-			s += "\t{dstVar} = (mp_obj_list_t*)({srcVar});\n".format(dstVar=dstVar, srcVar=srcVar)
-			s += """\tint {array_len} = {dstVar}->len;
-	{subType} *{array} = ({subType}*)sys.malloc(sizeof({subType}) * {array_len});
-""".format(dstVar=dstVar, subType=arg.subType, array=array_var, array_len=array_len_var).rstrip()
-
-			if arg.isIn():
-				s += "\n\tfor (int i = 0; i < {array_len}; i++)\n\t{castStr}".format(
-						array_len=array_len_var, castStr=castStr).rstrip()
-			
-			s += "\n"
-
-		if arg.customType:
-			s += "\t{dstVar} = ({type})(&((mp_obj_hObject_t*){srcVar})->hObj);\n".format(
-					dstVar=dstVar, srcVar=srcVar, type=arg.fullType)
-
-		# if method.needArrayCall():
-			# s += "\t}\n"
+		if method.needArrayCall():
+			s += "\t}\n"
 		i += 1
 
 	s = s.strip("\n")
@@ -111,7 +117,7 @@ def genArgumentsOutProcessing(method):
 					srcVar="{array}[i]".format(array=array_var))
 
 			if arg.isOut():
-				s += "\tfor (int i = 0; i < {array_len}; i++)\n\t{castStr}".format(
+				s += "\tfor (int i = 0; i < {array_len}; i++)\n\t\t{castStr}".format(
 						array_len=array_len_var, castStr=castStr).rstrip()
 
 			s += "\n"
@@ -122,6 +128,7 @@ def genArgumentsOutProcessing(method):
 	if len(s) > 0:
 		s += "\n"
 	return s
+
 def genArgumentsCleaning(method):
 	s = ""
 	i = 1
@@ -226,6 +233,8 @@ def genMethod(cl, method):
 	for arg in method.args:
 		if arg.fullType == "buffer":
 			s += "\tmp_obj_list_t* val{0};\n".format(i)
+			s += "\tint val{0}_array_len;\n".format(i)
+			s += "\t{subType} *val{0}_array;\n".format(i, subType=arg.subType)
 		else:
 			s += "\t{0} val{1};\n".format(arg.fullType, i)
 		i += 1
@@ -264,6 +273,8 @@ def genMethod(cl, method):
 		s += "\treturn mp_const_none;\n"
 	elif retType == "int":
 		s += "\treturn mp_obj_new_int(ret);\n"
+	elif retType == "float":
+		s += "\treturn mp_obj_new_float(ret);\n"
 	elif retType == "bool":
 		s += "\treturn ret ? mp_const_true : mp_const_false;\n"
 	elif retType.customType:
@@ -272,12 +283,10 @@ def genMethod(cl, method):
 	v->hObj = ret;
 	v->base.type = &{type.type}_type;
 	return v;
-""".format(type=retType)
+""".lstrip("\n").format(type=retType)
+	else:
+		raise Exception("unsupported return type '{0}'".format(retType.type))
 
 	s += "}\n"
 
-	if(funcName=="write"):
-		print(s)
-	if(funcName=="read"):
-		print(s)
 	return s

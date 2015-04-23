@@ -42,7 +42,7 @@ class Arg:
 
 	def __eq__(self, other):
 		return self.type == other
-	def __nq__(self, other):
+	def __ne__(self, other):
 		return not self.__eq__(other)
 
 class Method:
@@ -187,7 +187,8 @@ def genTree(ctx, txt):
 			pass
 
 def parseRetType(ret):
-	return parseArgs([ret])[0]
+	r = parseArgs([ret])
+	return r[0]
 def parseArgs(argsArray):
 	args = []
 	for a in argsArray:
