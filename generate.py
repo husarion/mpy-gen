@@ -1,7 +1,7 @@
 #!/usr/bin/python2.7
 import subprocess, json, os, sys, argparse
-sys.path.append(".")
-import lib.parser, lib.generator, lib.func_generator
+sys.path.append(os.path.realpath(__file__))
+from lib import parser, generator, func_generator
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('-c', '--config', nargs=1, type=str, metavar="PATH", required=True)
@@ -9,10 +9,11 @@ args = argparser.parse_args()
 
 data = open(args.config[0]).read()
 
-ctx = lib.parser.ParserContext()
-ctx.parseData(data)
+ctx = parser.ParserContext()
+if not ctx.parseData(data):
+	exit(1)
 
-qstrs = lib.generator.findQstrs(ctx)
+qstrs = generator.findQstrs(ctx)
 
 name = "hPyFramework"
 
@@ -48,7 +49,7 @@ typedef struct _mp_obj_hObject_t
 }} mp_obj_hObject_t;
 """.lstrip().format(name=name).encode("ascii"))
 
-t = lib.generator.genQstrEnum(qstrs)
+t = generator.genQstrEnum(qstrs)
 header.write(t.encode("ascii"))
 
 t = """
@@ -57,7 +58,7 @@ extern "C" {
 #endif"""
 header.write(t.encode("ascii"))
 
-t = lib.generator.genMethodsHeaders(ctx)
+t = generator.genMethodsHeaders(ctx)
 header.write(t.encode("ascii"))
 
 t = """
@@ -67,7 +68,7 @@ t = """
 """
 header.write(t.encode("ascii"))
 
-t = lib.generator.genObjTypesExterns(ctx)
+t = generator.genObjTypesExterns(ctx)
 header.write(t.encode("ascii"))
 
 # C
@@ -76,14 +77,14 @@ srcC.write("""
 
 """.lstrip().format(name=name).encode("ascii"))
 
-t = lib.generator.genQstrPool(qstrs)
+t = generator.genQstrPool(qstrs)
 srcC.write(t.encode("ascii"))
 
 for cl in ctx.objClasses:
-	t = lib.generator.genMethodsTable(cl)
+	t = generator.genMethodsTable(cl)
 	srcC.write(t.encode("ascii"))
 
-	t = lib.generator.genObjType(cl)
+	t = generator.genObjType(cl)
 	srcC.write(t.encode("ascii"))
 
 # CPP
@@ -100,8 +101,8 @@ srcCPP.write(("\n".join(["using namespace {0};".format(ns) for ns in ctx.namespa
 
 for cl in ctx.objClasses:
 	for m in cl.methods:
-		t = lib.func_generator.genMethod(cl, m)
+		t = func_generator.genMethod(cl, m)
 		srcCPP.write(t.encode("ascii"))
 
-t = lib.generator.genReg(ctx)
+t = generator.genReg(ctx)
 srcCPP.write(t.encode("ascii"))

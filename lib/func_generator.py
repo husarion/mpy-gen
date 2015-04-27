@@ -1,5 +1,3 @@
-import lib.generator
-
 def genMethodHeader(cl, method):
 	if method.subscript:
 			return "mp_obj_t {type}_subscript(mp_obj_t self_in, mp_obj_t index, mp_obj_t arg1)".format(

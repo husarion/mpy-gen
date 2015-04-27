@@ -203,7 +203,7 @@ class ParserContext:
 				curObj = None
 
 		if self.name is None:
-			print("Name must be specified")
+			print("Name must be specified in export file. Eg.")
 			print("name:<name>")
 			return False
 

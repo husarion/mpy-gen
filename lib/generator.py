@@ -1,5 +1,5 @@
 import sys
-import lib.qdef, lib.func_generator
+from . import qdef, func_generator
 
 def findQstrs(ctx):
 	qstrs = []
@@ -43,7 +43,7 @@ qstr_pool_t hpyframework_pool =
 	{{
 """.format(len(qstrs))
 	for q in qstrs:
-		v = lib.qdef.genQstr(q)
+		v = qdef.genQstr(q)
 		s += "\t\t" + v + ",\n"
 	
 	s += """\t},
@@ -55,7 +55,7 @@ def genMethodsHeaders(ctx):
 	s = "\n"
 	for cl in ctx.objClasses:
 		for method in cl.methods:
-			s += "\n" + lib.func_generator.genMethodHeader(cl, method) + ";"
+			s += "\n" + func_generator.genMethodHeader(cl, method) + ";"
 	return s
 
 def genMethodsTable(cl):
