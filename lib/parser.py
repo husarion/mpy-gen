@@ -206,6 +206,7 @@ class ParserContext:
 			print("Name must be specified in export file. Eg.")
 			print("name:<name>")
 			return False
+		return True
 
 def parseRetType(ret):
 	r = parseArgs([ret])

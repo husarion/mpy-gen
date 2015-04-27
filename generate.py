@@ -4,6 +4,7 @@ from lib import parser, generator, func_generator
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('-c', '--config', nargs=1, type=str, metavar="PATH", required=True)
+argparser.add_argument('-o', '--outdir', nargs=1, type=str, metavar="PATH")
 args = argparser.parse_args()
 
 data = open(args.config[0]).read()
@@ -14,11 +15,16 @@ if not ctx.parseData(data):
 
 qstrs = generator.findQstrs(ctx)
 
-name = "hPyFramework"
+name = ctx.name
 
-header = open("gen_" + name + ".h", "wb")
-srcC = open("gen_" + name + ".c", "wb")
-srcCPP = open("gen_" + name + ".cpp", "wb")
+if args.outdir is None:
+	outDir = "."
+else:
+	outDir = args.outdir[0]
+
+header = open(outDir + "/gen_" + name + ".h", "wb")
+srcC = open(outDir + "/gen_" + name + ".c", "wb")
+srcCPP = open(outDir + "/gen_" + name + ".cpp", "wb")
 
 # HEADER
 header.write("""
