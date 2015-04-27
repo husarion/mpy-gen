@@ -131,7 +131,7 @@ def genReg(ctx):
 		s += "extern const mp_obj_type_t {name}_type;\n".format(name=cl.name);
 
 	s += """
-void pyRegister()
+void register_{name}()
 {{
 	qstr_add_const_pool(&{name}_pool);
 
