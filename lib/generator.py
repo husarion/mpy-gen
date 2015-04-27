@@ -17,7 +17,7 @@ def findQstrs(ctx):
 
 	return qstrs
 
-def genQstrEnum(qstrs):
+def genQstrEnum(ctx, qstrs):
 	s = """
 enum
 {
@@ -26,22 +26,22 @@ enum
 	for q in qstrs:
 		s += "\tMP_QSTR_" + q + ",\n"
 	
-	s += """\tMP_QSTR_hPyFramework_number_of,
-};
-"""
+	s += """\tMP_QSTR_{name}_number_of,
+}};
+""".format(name=ctx.name)
 	return s
 
-def genQstrPool(qstrs):
+def genQstrPool(ctx, qstrs):
 	s = """
-qstr_pool_t hpyframework_pool =
+qstr_pool_t {name}_pool =
 {{
 	0,
 	0,
 	3, // set so that the first dynamically allocated pool is twice this size; must be <= the len (just below)
-	{0}, // corresponds to number of strings in array just below
+	{cnt}, // corresponds to number of strings in array just below
 	0x05000000,
 	{{
-""".format(len(qstrs))
+""".format(cnt=len(qstrs), name=ctx.name)
 	for q in qstrs:
 		v = qdef.genQstr(q)
 		s += "\t\t" + v + ",\n"
@@ -132,12 +132,12 @@ def genReg(ctx):
 
 	s += """
 void pyRegister()
-{
-	qstr_add_const_pool(&hpyframework_pool);
+{{
+	qstr_add_const_pool(&{name}_pool);
 
 	mp_obj_hObject_t *v;
 
-"""
+""".format(name=ctx.name)
 
 	for cl in ctx.objClasses:
 		s += "\tmp_store_name(MP_QSTR_{name}, (mp_obj_t)&{name}_type);\n".format(name=cl.name)

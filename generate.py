@@ -54,7 +54,7 @@ typedef struct _mp_obj_hObject_t
 }} mp_obj_hObject_t;
 """.lstrip().format(name=name).encode("ascii"))
 
-t = generator.genQstrEnum(qstrs)
+t = generator.genQstrEnum(ctx, qstrs)
 header.write(t.encode("ascii"))
 
 t = """
@@ -82,7 +82,7 @@ srcC.write("""
 
 """.lstrip().format(name=name).encode("ascii"))
 
-t = generator.genQstrPool(qstrs)
+t = generator.genQstrPool(ctx, qstrs)
 srcC.write(t.encode("ascii"))
 
 for cl in ctx.objClasses:
