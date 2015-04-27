@@ -30,15 +30,15 @@ enum
 
 def genQstrPool(ctx, qstrs):
 	s = """
-qstr_pool_t {name}_pool =
+qstr_pool_t {ctx.name}_pool =
 {{
 	0,
 	0,
 	3, // set so that the first dynamically allocated pool is twice this size; must be <= the len (just below)
 	{cnt}, // corresponds to number of strings in array just below
-	0x05000000,
+	0x{ctx.strStartNum:08x},
 	{{
-""".format(cnt=len(qstrs), name=ctx.name)
+""".format(cnt=len(qstrs), ctx=ctx)
 	for q in qstrs:
 		v = qdef.genQstr(q)
 		s += "\t\t" + v + ",\n"
