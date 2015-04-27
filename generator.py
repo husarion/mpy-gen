@@ -84,10 +84,10 @@ def genMethodsTable(cl):
 	for method in cl.methods:
 		if method.constructor or method.subscript:
 			continue
-		s += genMethodHeader(cl, method) + ";"
+		# s += genMethodHeader(cl, method) + ";"
 		s += """
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN({objName}_{funcName}_obj, {argMin}, {argMax}, {objName}_{funcName});
-""".format(
+""".lstrip().format(
 		objName=cl.name,
 		funcName=method.name,
 		argMin=method.getMinArgs() + 1,
@@ -95,7 +95,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN({objName}_{funcName}_obj, {argMin}, {
 
 	s += """
 STATIC const mp_map_elem_t {objName}_locals_dict_table[] =
-{{""".format(objName=cl.name)
+{{""".lstrip().format(objName=cl.name)
 
 	for method in cl.methods:
 		if not method.isRegularMethod():

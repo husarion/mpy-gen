@@ -87,10 +87,14 @@ class ParserContext:
 	name = None
 	objClasses = None
 	objGlobals = None
+	inclues = None
+	namespaces = None
 
 	def __init__(self):
 		self.objClasses = []
 		self.objGlobals = []
+		self.inclues = []
+		self.namespaces = []
 
 	def addClass(self, o):
 		self.objClasses.append(o)
@@ -116,6 +120,14 @@ class ParserContext:
 			if cmd == "name":
 				parts = rest.split(":")
 				self.name = parts[0]
+
+			if cmd == "include":
+				parts = rest.split(":")
+				self.inclues.append(parts[0])
+
+			if cmd == "namespace":
+				parts = rest.split(":")
+				self.namespaces.append(parts[0])
 
 			if cmd == "global":
 				parts = rest.split(":")

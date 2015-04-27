@@ -59,9 +59,6 @@ header.write(t.encode("ascii"))
 t = generator.genMethodsHeaders(ctx)
 header.write(t.encode("ascii"))
 
-# t = generator.genConstructorsHeaders(ctx)
-# header.write(t.encode("ascii"))
-
 t = """
 #ifdef __cplusplus
 }
@@ -91,14 +88,14 @@ for cl in ctx.objClasses:
 # CPP
 srcCPP.write("""
 #include "gen_{name}.h"
-#include <{name}.h>
 #include <stdio.h>
-
-using namespace hFramework;
 
 typedef unsigned char byte;
 
 """.lstrip().format(name=name).encode("ascii"))
+
+srcCPP.write(("\n".join(["#include \"{0}\"".format(incl) for incl in ctx.inclues]) + "\n\n").encode("ascii"))
+srcCPP.write(("\n".join(["using namespace {0};".format(ns) for ns in ctx.namespaces]) + "\n\n").encode("ascii"))
 
 for cl in ctx.objClasses:
 	for m in cl.methods:
