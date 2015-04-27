@@ -1,6 +1,7 @@
 #!/usr/bin/python2.7
 import subprocess, json, os, sys, argparse
-import parser, generator, func_generator
+sys.path.append(".")
+import lib.parser, lib.generator, lib.func_generator
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('-c', '--config', nargs=1, type=str, metavar="PATH", required=True)
@@ -8,10 +9,10 @@ args = argparser.parse_args()
 
 data = open(args.config[0]).read()
 
-ctx = parser.ParserContext()
+ctx = lib.parser.ParserContext()
 ctx.parseData(data)
 
-qstrs = generator.findQstrs(ctx)
+qstrs = lib.generator.findQstrs(ctx)
 
 name = "hPyFramework"
 
@@ -47,7 +48,7 @@ typedef struct _mp_obj_hObject_t
 }} mp_obj_hObject_t;
 """.lstrip().format(name=name).encode("ascii"))
 
-t = generator.genQstrEnum(qstrs)
+t = lib.generator.genQstrEnum(qstrs)
 header.write(t.encode("ascii"))
 
 t = """
@@ -56,7 +57,7 @@ extern "C" {
 #endif"""
 header.write(t.encode("ascii"))
 
-t = generator.genMethodsHeaders(ctx)
+t = lib.generator.genMethodsHeaders(ctx)
 header.write(t.encode("ascii"))
 
 t = """
@@ -66,7 +67,7 @@ t = """
 """
 header.write(t.encode("ascii"))
 
-t = generator.genObjTypesExterns(ctx)
+t = lib.generator.genObjTypesExterns(ctx)
 header.write(t.encode("ascii"))
 
 # C
@@ -75,14 +76,14 @@ srcC.write("""
 
 """.lstrip().format(name=name).encode("ascii"))
 
-t = generator.genQstrPool(qstrs)
+t = lib.generator.genQstrPool(qstrs)
 srcC.write(t.encode("ascii"))
 
 for cl in ctx.objClasses:
-	t = generator.genMethodsTable(cl)
+	t = lib.generator.genMethodsTable(cl)
 	srcC.write(t.encode("ascii"))
 
-	t = generator.genObjType(cl)
+	t = lib.generator.genObjType(cl)
 	srcC.write(t.encode("ascii"))
 
 # CPP
@@ -99,8 +100,8 @@ srcCPP.write(("\n".join(["using namespace {0};".format(ns) for ns in ctx.namespa
 
 for cl in ctx.objClasses:
 	for m in cl.methods:
-		t = func_generator.genMethod(cl, m)
+		t = lib.func_generator.genMethod(cl, m)
 		srcCPP.write(t.encode("ascii"))
 
-t = generator.genReg(ctx)
+t = lib.generator.genReg(ctx)
 srcCPP.write(t.encode("ascii"))

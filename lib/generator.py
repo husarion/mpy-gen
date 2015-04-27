@@ -1,4 +1,5 @@
-import qdef, func_generator
+import sys
+import lib.qdef, lib.func_generator
 
 def findQstrs(ctx):
 	qstrs = []
@@ -42,7 +43,7 @@ qstr_pool_t hpyframework_pool =
 	{{
 """.format(len(qstrs))
 	for q in qstrs:
-		v = qdef.genQstr(q)
+		v = lib.qdef.genQstr(q)
 		s += "\t\t" + v + ",\n"
 	
 	s += """\t},
@@ -50,32 +51,11 @@ qstr_pool_t hpyframework_pool =
 """
 	return s
 
-def genMethodHeader(cl, method):
-	if method.subscript:
-			return "mp_obj_t {type}_subscript(mp_obj_t self_in, mp_obj_t index, mp_obj_t arg1)".format(
-			type=cl.name)
-	if method.constructor:
-		return "mp_obj_t {type}_constructor(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args)".format(
-			type=cl.name)
-
-	args = ["mp_obj_t self_in"]
-	if method.needArrayCall():
-		s = "mp_obj_t {objName}_{funcName}(uint n_args, const mp_obj_t *args)".format(
-				objName=cl.name, funcName=method.name)
-	else:
-		i = 1
-		for arg in method.args:
-			args.append("mp_obj_t arg{0}".format(i))
-			i += 1
-		s = "mp_obj_t {objName}_{funcName}({args})".format(
-				objName=cl.name, funcName=method.name, args=", ".join(args))
-	return s
-
 def genMethodsHeaders(ctx):
 	s = "\n"
 	for cl in ctx.objClasses:
 		for method in cl.methods:
-			s += "\n" + genMethodHeader(cl, method) + ";"
+			s += "\n" + lib.func_generator.genMethodHeader(cl, method) + ";"
 	return s
 
 def genMethodsTable(cl):
@@ -84,7 +64,6 @@ def genMethodsTable(cl):
 	for method in cl.methods:
 		if method.constructor or method.subscript:
 			continue
-		# s += genMethodHeader(cl, method) + ";"
 		s += """
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN({objName}_{funcName}_obj, {argMin}, {argMax}, {objName}_{funcName});
 """.lstrip().format(

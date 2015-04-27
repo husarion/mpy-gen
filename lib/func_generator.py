@@ -1,4 +1,25 @@
-import generator
+import lib.generator
+
+def genMethodHeader(cl, method):
+	if method.subscript:
+			return "mp_obj_t {type}_subscript(mp_obj_t self_in, mp_obj_t index, mp_obj_t arg1)".format(
+			type=cl.name)
+	if method.constructor:
+		return "mp_obj_t {type}_constructor(mp_obj_t type_in, mp_uint_t n_args, mp_uint_t n_kw, const mp_obj_t *args)".format(
+			type=cl.name)
+
+	args = ["mp_obj_t self_in"]
+	if method.needArrayCall():
+		s = "mp_obj_t {objName}_{funcName}(uint n_args, const mp_obj_t *args)".format(
+				objName=cl.name, funcName=method.name)
+	else:
+		i = 1
+		for arg in method.args:
+			args.append("mp_obj_t arg{0}".format(i))
+			i += 1
+		s = "mp_obj_t {objName}_{funcName}({args})".format(
+				objName=cl.name, funcName=method.name, args=", ".join(args))
+	return s
 
 def genArgsCallList(method, maxArgs):
 	argsList = []
@@ -213,10 +234,9 @@ def genMethod(cl, method):
 	print("Generating " + funcName)
 
 	s = ""
-	s += generator.genMethodHeader(cl, method) + "\n{\n"
+	s += genMethodHeader(cl, method) + "\n{\n"
 	
 	# prolog - extracting self object
-	# if method.hasSelf():
 	if method.hasSelf():
 		s += "\t/* extracting self object */\n"
 		if method.needArrayCall():
