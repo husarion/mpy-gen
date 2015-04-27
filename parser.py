@@ -84,6 +84,7 @@ def parseLine(line):
 curObj = None
 
 class ParserContext:
+	name = None
 	objClasses = None
 	objGlobals = None
 
@@ -102,89 +103,97 @@ class ParserContext:
 				return cl
 		return None
 
-def genTree(ctx, txt):
-	lines = txt.split("\n")
+	def parseData(self, txt):
+		lines = txt.split("\n")
 
-	for line in lines:
-		line = line.strip()
-		if len(line) == 0:
-			continue
-
-		(cmd, rest) = parseLine(line)
-
-		if cmd == "global":
-			parts = rest.split(":")
-			objType = parts[0]
-			objName = parts[1]
-
-			ctx.addGlobal({'type': objType, 'name': objName})
-
-		if cmd == "class":
-			parts = rest.split(":")
-			objName = parts[0]
-			print("new class", objName)
-			curObj = Class()
-			curObj.name = objName
-			curObj.storeValue = False
-			curObj.methods = []
-			curObj.parents = []
-
-			if len(parts) >= 2:
-				for p in parts[1:]:
-					baseClass = ctx.findClass(p)
-					for m in baseClass.methods:
-						curObj.removeMethod(m.name)
-					curObj.methods += baseClass.methods
-
-		if cmd == "method":
-			if curObj is None:
+		for line in lines:
+			line = line.strip()
+			if len(line) == 0:
 				continue
 
-			parts = rest.split(":")
+			(cmd, rest) = parseLine(line)
 
-			objMethod = Method()
-			objMethod.name = parts[1]
-			objMethod.returnType = parseRetType(parts[0])
-			objMethod.args = parseArgs(parts[2:])
-			objMethod.constructor = False
-			objMethod.subscript = False
+			if cmd == "name":
+				parts = rest.split(":")
+				self.name = parts[0]
 
-			curObj.removeMethod(objMethod.name)
-			curObj.methods.append(objMethod)
+			if cmd == "global":
+				parts = rest.split(":")
+				objType = parts[0]
+				objName = parts[1]
 
-		if cmd == "constructor":
-			parts = rest.split(":")
+				self.addGlobal({'type': objType, 'name': objName})
 
-			objMethod = Method()
-			objMethod.name = "constructor"
-			objMethod.returnType = parseRetType("void")
-			objMethod.args = parseArgs(parts[0:])
-			objMethod.constructor = True
-			objMethod.subscript = False
+			if cmd == "class":
+				parts = rest.split(":")
+				objName = parts[0]
+				print("new class", objName)
+				curObj = Class()
+				curObj.name = objName
+				curObj.storeValue = False
+				curObj.methods = []
+				curObj.parents = []
 
-			curObj.removeMethod(objMethod.name)
-			curObj.methods.append(objMethod)
+				if len(parts) >= 2:
+					for p in parts[1:]:
+						baseClass = self.findClass(p)
+						for m in baseClass.methods:
+							curObj.removeMethod(m.name)
+						curObj.methods += baseClass.methods
 
-		if cmd == "subscript":
-			parts = rest.split(":")
+			if cmd == "method":
+				if curObj is None:
+					continue
 
-			objMethod = Method()
-			objMethod.name = "subscript"
-			objMethod.returnType = parseRetType(parts[0])
-			objMethod.args = [objMethod.returnType]
-			objMethod.constructor = False
-			objMethod.subscript = True
+				parts = rest.split(":")
 
-			curObj.removeMethod(objMethod.name)
-			curObj.methods.append(objMethod)
+				objMethod = Method()
+				objMethod.name = parts[1]
+				objMethod.returnType = parseRetType(parts[0])
+				objMethod.args = parseArgs(parts[2:])
+				objMethod.constructor = False
+				objMethod.subscript = False
 
-		if cmd == "storevalue":
-			curObj.storeValue = True
+				curObj.removeMethod(objMethod.name)
+				curObj.methods.append(objMethod)
 
-		if cmd == "endclass":
-			ctx.addClass(curObj)
-			curObj = None
-			pass
+			if cmd == "constructor":
+				parts = rest.split(":")
+
+				objMethod = Method()
+				objMethod.name = "constructor"
+				objMethod.returnType = parseRetType("void")
+				objMethod.args = parseArgs(parts[0:])
+				objMethod.constructor = True
+				objMethod.subscript = False
+
+				curObj.removeMethod(objMethod.name)
+				curObj.methods.append(objMethod)
+
+			if cmd == "subscript":
+				parts = rest.split(":")
+
+				objMethod = Method()
+				objMethod.name = "subscript"
+				objMethod.returnType = parseRetType(parts[0])
+				objMethod.args = [objMethod.returnType]
+				objMethod.constructor = False
+				objMethod.subscript = True
+
+				curObj.removeMethod(objMethod.name)
+				curObj.methods.append(objMethod)
+
+			if cmd == "storevalue":
+				curObj.storeValue = True
+
+			if cmd == "endclass":
+				self.addClass(curObj)
+				curObj = None
+
+		if self.name is None:
+			print("Name must be specified")
+			print("name:<name>")
+			return False
 
 def parseRetType(ret):
 	r = parseArgs([ret])

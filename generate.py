@@ -1,24 +1,28 @@
 #!/usr/bin/python2.7
-import subprocess, json, os, sys
+import subprocess, json, os, sys, argparse
 import parser, generator, func_generator
 
-pyDir = os.path.dirname(os.path.realpath(__file__ + "/../"))
+argparser = argparse.ArgumentParser()
+argparser.add_argument('-c', '--config', nargs=1, type=str, metavar="PATH", required=True)
+args = argparser.parse_args()
 
-data = open(pyDir+"/src/exports").read()
+data = open(args.config[0]).read()
 
 ctx = parser.ParserContext()
-parser.genTree(ctx, data)
+ctx.parseData(data)
 
 qstrs = generator.findQstrs(ctx)
 
-header = open(pyDir+"/src/hPyFramework.h", "wb")
-srcC = open(pyDir+"/src/hPyFramework.c", "wb")
-srcCPP = open(pyDir+"/src/hPyFramework.cpp", "wb")
+name = "hPyFramework"
+
+header = open("gen_" + name + ".h", "wb")
+srcC = open("gen_" + name + ".c", "wb")
+srcCPP = open("gen_" + name + ".cpp", "wb")
 
 # HEADER
 header.write("""
 #ifdef __cplusplus
-extern "C" {
+extern "C" {{
 #endif
 #include "py/nlr.h"
 #include "py/parse.h"
@@ -31,17 +35,17 @@ extern "C" {
 
 void reg();
 
-extern qstr_pool_t hpyframework_pool;
+extern qstr_pool_t {name}_pool;
 #ifdef __cplusplus
-}
+}}
 #endif
 
 typedef struct _mp_obj_hObject_t
-{
+{{
 	mp_obj_base_t base;
 	void *hObj;
-} mp_obj_hObject_t;
-""".lstrip().encode("ascii"))
+}} mp_obj_hObject_t;
+""".lstrip().format(name=name).encode("ascii"))
 
 t = generator.genQstrEnum(qstrs)
 header.write(t.encode("ascii"))
@@ -70,9 +74,9 @@ header.write(t.encode("ascii"))
 
 # C
 srcC.write("""
-#include "hPyFramework.h"
+#include "gen_{name}.h"
 
-""".lstrip().encode("ascii"))
+""".lstrip().format(name=name).encode("ascii"))
 
 t = generator.genQstrPool(qstrs)
 srcC.write(t.encode("ascii"))
@@ -86,24 +90,20 @@ for cl in ctx.objClasses:
 
 # CPP
 srcCPP.write("""
-#include "hPyFramework.h"
-#include <hFramework.h>
+#include "gen_{name}.h"
+#include <{name}.h>
 #include <stdio.h>
 
 using namespace hFramework;
 
 typedef unsigned char byte;
 
-""".lstrip().encode("ascii"))
+""".lstrip().format(name=name).encode("ascii"))
 
 for cl in ctx.objClasses:
 	for m in cl.methods:
 		t = func_generator.genMethod(cl, m)
 		srcCPP.write(t.encode("ascii"))
-
-	# if cl.constructor:
-		# t = func_generator.genConstructor(cl)
-		# srcCPP.write(t.encode("ascii"))
 
 t = generator.genReg(ctx)
 srcCPP.write(t.encode("ascii"))
