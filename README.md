@@ -8,4 +8,4 @@ For more details go to [Wiki](https://github.com/robocoreio/mpy-gen/wiki)
 
 # Usage
 
-`python ./generate.py --config exports_file --outdir gen/
+`python ./generate.py --config exports_file --outdir gen/`
