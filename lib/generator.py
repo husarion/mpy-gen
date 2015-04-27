@@ -11,9 +11,7 @@ def findQstrs(ctx):
 			qstrs.append(m.name)
 	
 	qstrs = set(qstrs)
-	qstrs.remove("sys")
-	qstrs.remove("write")
-	qstrs.remove("read")
+	qstrs -= set(["sys", "write", "read"])
 
 	return qstrs
 
