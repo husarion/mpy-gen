@@ -20,15 +20,14 @@ def findQstrs(ctx):
 def genQstrEnum(ctx, qstrs):
 	s = """
 enum
-{
-	start = 0x05000000 - 1,
-"""
+{{
+	MP_{ctx.name}_start = 0x{ctx.strStartNum:08x} - 1,
+""".format(ctx=ctx)
+
 	for q in qstrs:
 		s += "\tMP_QSTR_" + q + ",\n"
-	
-	s += """\tMP_QSTR_{name}_number_of,
-}};
-""".format(name=ctx.name)
+
+	s += "\n};\n"
 	return s
 
 def genQstrPool(ctx, qstrs):

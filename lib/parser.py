@@ -89,6 +89,7 @@ class ParserContext:
 	objGlobals = None
 	inclues = None
 	namespaces = None
+	strStartNum = None
 
 	def __init__(self):
 		self.objClasses = []
@@ -128,6 +129,10 @@ class ParserContext:
 			if cmd == "namespace":
 				parts = rest.split(":")
 				self.namespaces.append(parts[0])
+
+			if cmd == "num":
+				parts = rest.split(":")
+				self.strStartNum = int(parts[0], 0)
 
 			if cmd == "global":
 				parts = rest.split(":")
@@ -204,7 +209,11 @@ class ParserContext:
 
 		if self.name is None:
 			print("Name must be specified in export file. Eg.")
-			print("name:<name>")
+			print("name:myproject")
+			return False
+		if self.strStartNum is None:
+			print("String start number must be specified in export file.close Eg.")
+			print("num:0x01000000")
 			return False
 		return True
 
