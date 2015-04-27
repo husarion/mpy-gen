@@ -1,6 +1,5 @@
 #!/usr/bin/python2.7
 import subprocess, json, os, sys, argparse
-sys.path.append(os.path.realpath(__file__))
 from lib import parser, generator, func_generator
 
 argparser = argparse.ArgumentParser()
