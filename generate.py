@@ -22,6 +22,9 @@ if args.outdir is None:
 else:
 	outDir = args.outdir[0]
 
+if not os.path.exists(outDir):
+	os.makedirs(outDir)
+
 header = open(outDir + "/gen_" + name + ".h", "wb")
 srcC = open(outDir + "/gen_" + name + ".c", "wb")
 srcCPP = open(outDir + "/gen_" + name + ".cpp", "wb")
