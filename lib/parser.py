@@ -116,6 +116,14 @@ class ParserContext:
 				return cl
 		return None
 
+	def isPolymorphic(self, cl):
+		if len(cl.parents) > 0:
+			return True
+		for c in self.objClasses:
+			if cl in c.parents:
+				return True
+		return False
+
 	def parseData(self, txt):
 		lines = txt.split("\n")
 
@@ -165,6 +173,7 @@ class ParserContext:
 						for m in baseClass.methods:
 							curObj.removeMethod(m.name)
 						curObj.methods += baseClass.methods
+						curObj.parents.append(baseClass)
 
 			if cmd == "method":
 				if curObj is None:

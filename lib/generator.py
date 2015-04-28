@@ -149,5 +149,17 @@ void register_{name}()
 	s += """
 }
 """
+	return s
 
+def genDynamicCaster(ctx):
+	s = """
+template<typename T>
+T mycast(mp_obj_hObject_t* src)
+{
+""".lstrip()
+	for cl in ctx.objClasses:
+		if ctx.isPolymorphic(cl):
+			s += "\tif (src->base.type == &{type}_type)\n".format(type=cl.name)
+			s += "\t\treturn dynamic_cast<T>(({type}*)src->hObj);\n".format(type=cl.name)
+	s += "}\n"
 	return s

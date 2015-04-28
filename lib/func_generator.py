@@ -93,7 +93,7 @@ def genArgumentCast(method, arg, i, tabLvl):
 		s += "\n"
 
 	if arg.customType:
-		s += "{dstVar} = ({type})(&((mp_obj_hObject_t*){srcVar})->hObj);\n".format(
+		s += "{dstVar} = mycast<{type}>((mp_obj_hObject_t*){srcVar});\n".format(
 				dstVar=dstVar, srcVar=srcVar, type=arg.fullType)
 	
 	s = s.strip("\n")

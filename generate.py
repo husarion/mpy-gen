@@ -107,6 +107,9 @@ typedef unsigned char byte;
 srcCPP.write(("\n".join(["#include \"{0}\"".format(incl) for incl in ctx.inclues]) + "\n\n").encode("ascii"))
 srcCPP.write(("\n".join(["using namespace {0};".format(ns) for ns in ctx.namespaces]) + "\n\n").encode("ascii"))
 
+t = generator.genDynamicCaster(ctx)
+srcCPP.write(t.encode("ascii"))
+
 for cl in ctx.objClasses:
 	for m in cl.methods:
 		t = func_generator.genMethod(cl, m)
