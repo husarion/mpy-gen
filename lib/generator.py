@@ -161,5 +161,5 @@ T mycast(mp_obj_hObject_t* src)
 		if ctx.isPolymorphic(cl):
 			s += "\tif (src->base.type == &{type}_type)\n".format(type=cl.name)
 			s += "\t\treturn dynamic_cast<T>(({type}*)src->hObj);\n".format(type=cl.name)
-	s += "}\n"
+	s += "\treturn 0;\n}\n"
 	return s
