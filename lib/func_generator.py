@@ -93,7 +93,10 @@ def genArgumentCast(method, arg, i, tabLvl):
 		s += "\n"
 
 	if arg.customType:
-		s += "{dstVar} = mycast<{type}>((mp_obj_hObject_t*){srcVar});\n".format(
+		s += """{dstVar} = mycast<{type}>((mp_obj_hObject_t*){srcVar});
+if ({dstVar} == 0)
+	nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "Argument cannot be casted to valid type"));
+""".format(
 				dstVar=dstVar, srcVar=srcVar, type=arg.fullType)
 	
 	s = s.strip("\n")
