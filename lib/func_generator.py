@@ -1,3 +1,6 @@
+def isIntType(type):
+	return type in ["int", "byte", "int8_t", "int16_t", "int32_t", "uint8_t", "uint16_t", "uint32_t"]
+
 def genMethodHeader(cl, method):
 	if method.subscript:
 			return "mp_obj_t {type}_subscript(mp_obj_t self_in, mp_obj_t index, mp_obj_t arg1)".format(
@@ -29,20 +32,30 @@ def genArgsCallList(method, maxArgs):
 			argsList.append("val{0}_array".format(i + 1))
 			argsList.append("val{0}_array_len".format(i + 1))
 		elif arg.isRef:
-			argsList.append("*val{0}".format(i + 1))
+			if arg.customType:
+				argsList.append("*val{0}".format(i + 1))
+			else:
+				argsList.append("val{0}".format(i + 1))
 		else:
 			argsList.append("val{0}".format(i + 1))
 		i += 1
 
 	return argsList
 
-def genSimpleTypeCast(type, srcVar, dstVar, lvl=0):
+def genSimpleTypeCast(srcVar, dstVar, lvl=0, arg=None, type=None):
 	s = "\t" * lvl
-	if type == "int":
-		s += "{dstVar} = mp_obj_get_int({srcVar});\n".format(dstVar=dstVar, srcVar=srcVar)
-	elif type == "byte":
-		s += "{dstVar} = (byte)mp_obj_get_int({srcVar});\n".format(dstVar=dstVar, srcVar=srcVar)
-	elif type == "bool":
+
+	if arg:
+		argType = arg.type
+		if arg.isRef:
+			s += "{dstVar}_array = (mp_obj_list_t*){srcVar};\n".format(dstVar=dstVar, srcVar=srcVar)
+			srcVar = "{dstVar}_array->items[0]".format(dstVar=dstVar)
+	else:
+		argType = type
+
+	if isIntType(argType):
+		s += "{dstVar} = ({type})mp_obj_get_int({srcVar});\n".format(type=argType, dstVar=dstVar, srcVar=srcVar)
+	elif argType == "bool":
 		s += "{dstVar} = mp_obj_is_true({srcVar});\n".format(dstVar=dstVar, srcVar=srcVar)
 	else:
 		return ""
@@ -50,10 +63,8 @@ def genSimpleTypeCast(type, srcVar, dstVar, lvl=0):
 
 def genSimpleTypeCastReverse(type, srcVar, dstVar, lvl=0):
 	s = "\t" * lvl
-	if type == "int":
-		s += "{dstVar} = mp_obj_new_int({srcVar});\n".format(dstVar=dstVar, srcVar=srcVar)
-	elif type == "byte":
-		s += "{dstVar} = mp_obj_new_int((byte){srcVar});\n".format(dstVar=dstVar, srcVar=srcVar)
+	if isIntType(type):
+		s += "{dstVar} = mp_obj_new_int(({type}){srcVar});\n".format(type=type, dstVar=dstVar, srcVar=srcVar)
 	elif type == "bool":
 		s += "{dstVar} = {srcVar} ? mp_const_true : mp_const_false;\n".format(dstVar=dstVar, srcVar=srcVar)
 	else:
@@ -71,7 +82,7 @@ def genArgumentCast(method, arg, i, tabLvl):
 	else:
 		srcVar = "arg{0}".format(i)
 
-	s += genSimpleTypeCast(type=arg.type, dstVar=dstVar, srcVar=srcVar)
+	s += genSimpleTypeCast(arg=arg, dstVar=dstVar, srcVar=srcVar)
 	if arg.type == "buffer":
 		array_var = "val{idx}_array".format(idx=i)
 		array_len_var = "val{idx}_array_len".format(idx=i)
@@ -144,6 +155,14 @@ def genArgumentsOutProcessing(method):
 
 			s += "\n"
 
+		elif arg.isRef:
+			castStr = genSimpleTypeCastReverse(
+					arg.type,
+					dstVar="val{idx}_array->items[0]".format(idx=i),
+					srcVar="val{idx}".format(idx=i),
+					lvl=1)
+			s += castStr
+
 		i += 1
 
 	s = s.strip("\n")
@@ -202,7 +221,7 @@ def genMethodCall(cl, method):
 """.lstrip("\n").format(
 				retStr=retStr, funcName=funcName, args=", ".join(argsList), type=cl.name)
 
-	elif method.desctructor:
+	elif method.destructor:
 		s += "\n\tdelete hSelf;"
 
 	elif method.subscript:
@@ -257,8 +276,12 @@ def genMethod(cl, method):
 			s += "\tmp_obj_list_t* val{0};\n".format(i)
 			s += "\tint val{0}_array_len;\n".format(i)
 			s += "\t{subType} *val{0}_array;\n".format(i, subType=arg.subType)
+		elif arg.customType:
+			s += "\t{0}* val{1};\n".format(arg.type, i)
 		else:
-			s += "\t{0} val{1};\n".format(arg.fullType, i)
+			if arg.isRef:
+				s += "\tmp_obj_list_t* val{0}_array;\n".format(i)
+			s += "\t{0} val{1};\n".format(arg.type, i)
 		i += 1
 
 	# casted arguments

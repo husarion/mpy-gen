@@ -80,7 +80,7 @@ STATIC const mp_map_elem_t {objName}_locals_dict_table[] =
 {{""".lstrip().format(objName=cl.name)
 
 	for method in cl.methods:
-		if method.isRegularMethod() or method.desctructor:
+		if method.isRegularMethod() or method.destructor:
 			s += """
 	{{ MP_OBJ_NEW_QSTR(MP_QSTR_{funcName}), (mp_obj_t)&{objName}_{funcName}_obj }},
 """.rstrip().format(objName=cl.name, funcName=method.name)

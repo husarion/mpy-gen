@@ -50,14 +50,14 @@ class Method:
 	returnType = None
 	args = None
 	constructor = None
-	desctructor = None
+	destructor = None
 	subscript = None
 
 	def __init__(self):
 		self.returnType = parseRetType("void")
 		self.args = []
 		self.constructor = False
-		self.desctructor = False
+		self.destructor = False
 		self.subscript = False
 
 	def needArrayCall(self):
@@ -78,7 +78,7 @@ class Method:
 	def getMaxArgs(self):
 		return len(self.args)
 	def isRegularMethod(self):
-		return not self.constructor and not self.desctructor and not self.subscript
+		return not self.constructor and not self.destructor and not self.subscript
 	def hasSelf(self):
 		return not self.constructor
 
@@ -205,7 +205,7 @@ class ParserContext:
 				objMethod = Method()
 				objMethod.name = "__del__"
 				objMethod.returnType = parseRetType("void")
-				objMethod.desctructor = True
+				objMethod.destructor = True
 
 				curObj.removeMethod(objMethod.name)
 				curObj.methods.append(objMethod)
@@ -235,7 +235,7 @@ class ParserContext:
 			print("name:myproject")
 			return False
 		if not extern and self.strStartNum is None:
-			print("String start number must be specified in export file.close Eg.")
+			print("String start number must be specified in export file. Eg.")
 			print("num:0x01000000")
 			return False
 		return True
@@ -255,13 +255,13 @@ def parseArgs(argsArray):
 			arg.fullType = a
 			arg.optional = False
 
-		arg.customType = arg.fullType[0] == "h" or arg.fullType[0] == "I"
 		if arg.fullType[-1] == "*":
 			arg.isRef = True
 			arg.type = arg.fullType[:-1]
 		else:
 			arg.isRef = False
 			arg.type = arg.fullType
+		arg.customType = isCustomType(arg.type)
 
 		m = re.match("(.*)\[(.*),(.*)\]", arg.fullType)
 		if m:
@@ -273,3 +273,5 @@ def parseArgs(argsArray):
 		args.append(arg)
 	return args
 
+def isCustomType(type):
+	return type not in ["int", "int16_t", "bool", "float", "byte", "buffer"]
