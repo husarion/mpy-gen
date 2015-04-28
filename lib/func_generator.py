@@ -30,7 +30,8 @@ def genArgsCallList(method, maxArgs):
 			break
 		if arg.type == "buffer":
 			argsList.append("val{0}_array".format(i + 1))
-			argsList.append("val{0}_array_len".format(i + 1))
+			if arg.len is None:
+				argsList.append("val{0}_array_len".format(i + 1))
 		elif arg.isRef:
 			if arg.customType:
 				argsList.append("*val{0}".format(i + 1))
@@ -97,9 +98,15 @@ def genArgumentCast(method, arg, i, tabLvl):
 				srcVar="val{idx}->items[i]".format(idx=i))
 
 		s += "{dstVar} = (mp_obj_list_t*){srcVar};\n".format(dstVar=dstVar, srcVar=srcVar)
-		s += """{array_len} = {dstVar}->len;
-{array} = ({subType}*)sys.malloc(sizeof({subType}) * {array_len});
-""".format(dstVar=dstVar, subType=arg.subType, array=array_var, array_len=array_len_var).rstrip()
+		s += "{array_len} = {dstVar}->len;\n".format(array_len=array_len_var, dstVar=dstVar)
+		if arg.len is not None:
+			s += """if ({array_len} > {arg.len})
+	{array_len} = {arg.len};
+else if ({array_len} < {arg.len})
+	nlr_raise(mp_obj_new_exception_msg(&mp_type_ValueError, "Too short array"));
+""".format(array_len=array_len_var, arg=arg)
+		s += "{array} = ({subType}*)sys.malloc(sizeof({subType}) * {array_len});\n".format(
+				subType=arg.subType, array=array_var, array_len=array_len_var).rstrip()
 
 		if arg.isIn():
 			s += "\nfor (int i = 0; i < {array_len}; i++)\n\t{castStr}".format(

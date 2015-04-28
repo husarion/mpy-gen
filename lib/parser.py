@@ -34,6 +34,7 @@ class Arg:
 	customType = None
 	subType = None # for lists
 	dir = None # in, out, inout
+	len = None
 
 	def isIn(self):
 		return self.dir == "in" or self.dir == "inout"
@@ -261,14 +262,25 @@ def parseArgs(argsArray):
 		else:
 			arg.isRef = False
 			arg.type = arg.fullType
-		arg.customType = isCustomType(arg.type)
 
-		m = re.match("(.*)\[(.*),(.*)\]", arg.fullType)
+		# buffer[byte,in]
+		m = re.match("(.*)\[([^,]*),([^,]*)\]", arg.fullType)
 		if m:
 			arg.fullType = m.group(1)
 			arg.type = m.group(1)
 			arg.subType = m.group(2)
 			arg.dir = m.group(3)
+
+		# buffer[byte,in,8]
+		m = re.match("(.*)\[([^,]*),([^,]*),([^,]*)\]", arg.fullType)
+		if m:
+			arg.fullType = m.group(1)
+			arg.type = m.group(1)
+			arg.subType = m.group(2)
+			arg.dir = m.group(3)
+			arg.len = int(m.group(4))
+
+		arg.customType = isCustomType(arg.type)
 
 		args.append(arg)
 	return args
