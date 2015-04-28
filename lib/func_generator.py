@@ -193,13 +193,14 @@ def genMethodCall(cl, method):
 	elif method.constructor:
 		argsList = genArgsCallList(method, method.getMaxArgs())
 		s += """
-	int size = {type}::constructor_get_size({args});
-	mp_obj_hObject_t *v = m_new_obj_var(mp_obj_hObject_t, uint8_t, size);
+	mp_obj_hObject_t *v = m_new_obj_with_finaliser(mp_obj_hObject_t);
 	v->base.type = (mp_obj_type_t*)type_in;
-	{type}* obj = ({type}*)&v->hObj;
-	{type}::constructor(obj, {args});
+	v->hObj = new {type}({args});
 """.lstrip("\n").format(
 				retStr=retStr, funcName=funcName, args=", ".join(argsList), type=cl.name)
+
+	elif method.desctructor:
+		s += "\n\tdelete hSelf;"
 
 	elif method.subscript:
 		casts = genArgumentsCasts(method)

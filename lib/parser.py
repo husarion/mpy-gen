@@ -50,7 +50,15 @@ class Method:
 	returnType = None
 	args = None
 	constructor = None
+	desctructor = None
 	subscript = None
+
+	def __init__(self):
+		self.returnType = parseRetType("void")
+		self.args = []
+		self.constructor = False
+		self.desctructor = False
+		self.subscript = False
 
 	def needArrayCall(self):
 		if self.subscript:
@@ -70,7 +78,7 @@ class Method:
 	def getMaxArgs(self):
 		return len(self.args)
 	def isRegularMethod(self):
-		return not self.constructor and not self.subscript
+		return not self.constructor and not self.desctructor and not self.subscript
 	def hasSelf(self):
 		return not self.constructor
 
@@ -168,8 +176,6 @@ class ParserContext:
 				objMethod.name = parts[1]
 				objMethod.returnType = parseRetType(parts[0])
 				objMethod.args = parseArgs(parts[2:])
-				objMethod.constructor = False
-				objMethod.subscript = False
 
 				curObj.removeMethod(objMethod.name)
 				curObj.methods.append(objMethod)
@@ -182,7 +188,14 @@ class ParserContext:
 				objMethod.returnType = parseRetType("void")
 				objMethod.args = parseArgs(parts[0:])
 				objMethod.constructor = True
-				objMethod.subscript = False
+
+				curObj.removeMethod(objMethod.name)
+				curObj.methods.append(objMethod)
+
+				objMethod = Method()
+				objMethod.name = "__del__"
+				objMethod.returnType = parseRetType("void")
+				objMethod.desctructor = True
 
 				curObj.removeMethod(objMethod.name)
 				curObj.methods.append(objMethod)
