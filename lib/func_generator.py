@@ -55,6 +55,8 @@ def genSimpleTypeCast(srcVar, dstVar, lvl=0, arg=None, type=None):
 
 	if isIntType(argType):
 		s += "{dstVar} = ({type})mp_obj_get_int({srcVar});\n".format(type=argType, dstVar=dstVar, srcVar=srcVar)
+	elif argType == "float":
+		s += "{dstVar} = mp_obj_get_float({srcVar});\n".format(dstVar=dstVar, srcVar=srcVar)
 	elif argType == "bool":
 		s += "{dstVar} = mp_obj_is_true({srcVar});\n".format(dstVar=dstVar, srcVar=srcVar)
 	else:
@@ -64,7 +66,9 @@ def genSimpleTypeCast(srcVar, dstVar, lvl=0, arg=None, type=None):
 def genSimpleTypeCastReverse(type, srcVar, dstVar, lvl=0):
 	s = "\t" * lvl
 	if isIntType(type):
-		s += "{dstVar} = mp_obj_new_int(({type}){srcVar});\n".format(type=type, dstVar=dstVar, srcVar=srcVar)
+		s += "{dstVar} = mp_obj_new_int({srcVar});\n".format(dstVar=dstVar, srcVar=srcVar)
+	elif type == "float":
+		s += "{dstVar} = mp_obj_new_float({srcVar});\n".format(dstVar=dstVar, srcVar=srcVar)
 	elif type == "bool":
 		s += "{dstVar} = {srcVar} ? mp_const_true : mp_const_false;\n".format(dstVar=dstVar, srcVar=srcVar)
 	else:
