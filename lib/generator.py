@@ -4,8 +4,12 @@ from . import qdef, func_generator
 def findQstrs(ctx):
 	qstrs = []
 	for gl in ctx.objGlobals:
+		if gl["extern"]:
+			continue
 		qstrs.append(gl["name"])
 	for cl in ctx.objClasses:
+		if cl.extern:
+			continue
 		qstrs.append(cl.name)
 		for m in cl.methods:
 			qstrs.append(m.name)
@@ -51,6 +55,8 @@ qstr_pool_t {ctx.name}_pool =
 def genMethodsHeaders(ctx):
 	s = "\n"
 	for cl in ctx.objClasses:
+		if cl.extern:
+			continue
 		for method in cl.methods:
 			s += "\n" + func_generator.genMethodHeader(cl, method) + ";"
 	return s
@@ -124,6 +130,8 @@ def genReg(ctx):
 	s = "\n"
 
 	for cl in ctx.objClasses:
+		if cl.extern:
+			continue
 		s += "extern const mp_obj_type_t {name}_type;\n".format(name=cl.name);
 
 	s += """
@@ -136,9 +144,13 @@ void register_{name}()
 """.format(name=ctx.name)
 
 	for cl in ctx.objClasses:
+		if cl.extern:
+			continue
 		s += "\tmp_store_name(MP_QSTR_{name}, (mp_obj_t)&{name}_type);\n".format(name=cl.name)
 
 	for gl in ctx.objGlobals:
+		if gl["extern"]:
+			continue
 		s += """
 	v = m_new_obj_var(mp_obj_hObject_t, char*, 0);
 	v->hObj = dynamic_cast<{type}*>(&{name});

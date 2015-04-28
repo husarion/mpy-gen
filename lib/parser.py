@@ -124,7 +124,7 @@ class ParserContext:
 				return True
 		return False
 
-	def parseData(self, txt):
+	def parseData(self, txt, extern = False):
 		lines = txt.split("\n")
 
 		for line in lines:
@@ -134,19 +134,19 @@ class ParserContext:
 
 			(cmd, rest) = parseLine(line)
 
-			if cmd == "name":
+			if not extern and cmd == "name":
 				parts = rest.split(":")
 				self.name = parts[0]
 
-			if cmd == "include":
+			if not extern and cmd == "include":
 				parts = rest.split(":")
 				self.inclues.append(parts[0])
 
-			if cmd == "namespace":
+			if not extern and cmd == "namespace":
 				parts = rest.split(":")
 				self.namespaces.append(parts[0])
 
-			if cmd == "num":
+			if not extern and cmd == "num":
 				parts = rest.split(":")
 				self.strStartNum = int(parts[0], 0)
 
@@ -155,13 +155,14 @@ class ParserContext:
 				objType = parts[0]
 				objName = parts[1]
 
-				self.addGlobal({'type': objType, 'name': objName})
+				self.addGlobal({'type': objType, 'name': objName, 'extern': extern})
 
 			if cmd == "class":
 				parts = rest.split(":")
 				objName = parts[0]
 				print("new class", objName)
 				curObj = Class()
+				curObj.extern = extern
 				curObj.name = objName
 				curObj.storeValue = False
 				curObj.methods = []
@@ -175,7 +176,7 @@ class ParserContext:
 						curObj.methods += baseClass.methods
 						curObj.parents.append(baseClass)
 
-			if cmd == "method":
+			if not extern and cmd == "method":
 				if curObj is None:
 					continue
 
@@ -189,7 +190,7 @@ class ParserContext:
 				curObj.removeMethod(objMethod.name)
 				curObj.methods.append(objMethod)
 
-			if cmd == "constructor":
+			if not extern and cmd == "constructor":
 				parts = rest.split(":")
 
 				objMethod = Method()
@@ -209,7 +210,7 @@ class ParserContext:
 				curObj.removeMethod(objMethod.name)
 				curObj.methods.append(objMethod)
 
-			if cmd == "subscript":
+			if not extern and cmd == "subscript":
 				parts = rest.split(":")
 
 				objMethod = Method()
@@ -222,18 +223,18 @@ class ParserContext:
 				curObj.removeMethod(objMethod.name)
 				curObj.methods.append(objMethod)
 
-			if cmd == "storevalue":
+			if not extern and cmd == "storevalue":
 				curObj.storeValue = True
 
 			if cmd == "endclass":
 				self.addClass(curObj)
 				curObj = None
 
-		if self.name is None:
+		if not extern and self.name is None:
 			print("Name must be specified in export file. Eg.")
 			print("name:myproject")
 			return False
-		if self.strStartNum is None:
+		if not extern and self.strStartNum is None:
 			print("String start number must be specified in export file.close Eg.")
 			print("num:0x01000000")
 			return False

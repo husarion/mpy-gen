@@ -5,13 +5,18 @@ from lib import parser, generator, func_generator
 argparser = argparse.ArgumentParser()
 argparser.add_argument('-c', '--config', nargs=1, type=str, metavar="PATH", required=True)
 argparser.add_argument('-o', '--outdir', nargs=1, type=str, metavar="PATH")
+argparser.add_argument('-e', '--extern', action='append', type=str, metavar="PATH", default=[])
 args = argparser.parse_args()
 
-data = open(args.config[0]).read()
-
 ctx = parser.ParserContext()
-if not ctx.parseData(data):
+
+data = open(args.config[0]).read()
+if not ctx.parseData(data, False):
 	exit(1)
+for externPath in args.extern:
+	data = open(externPath).read()
+	if not ctx.parseData(data, True):
+		exit(1)
 
 qstrs = generator.findQstrs(ctx)
 
@@ -89,6 +94,9 @@ t = generator.genQstrPool(ctx, qstrs)
 srcC.write(t.encode("ascii"))
 
 for cl in ctx.objClasses:
+	if cl.extern:
+		continue
+
 	t = generator.genMethodsTable(cl)
 	srcC.write(t.encode("ascii"))
 
@@ -111,6 +119,9 @@ t = generator.genDynamicCaster(ctx)
 srcCPP.write(t.encode("ascii"))
 
 for cl in ctx.objClasses:
+	if cl.extern:
+		continue
+
 	for m in cl.methods:
 		t = func_generator.genMethod(cl, m)
 		srcCPP.write(t.encode("ascii"))
