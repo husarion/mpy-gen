@@ -2,10 +2,7 @@ import sys
 from . import qdef, func_generator
 
 def genQstrEnum(ctx):
-	s = """
-enum
-{{
-""".format(ctx=ctx)
+	s = "\nenum\n{\n"
 
 	ext = ctx.getExternQstrs()
 	extSet = set([i["name"] for i in ext])
