@@ -33,9 +33,14 @@ qstr_pool_t {ctx.name}_pool =
 	0x{ctx.strStartNum:08x},
 	{{
 """.format(cnt=len(ctx.qstrs), ctx=ctx)
+
+	ext = ctx.getExternQstrs()
+	extSet = set([i["name"] for i in ext])
+
 	for q in ctx.qstrs:
-		v = qdef.genQstr(q["name"])
-		s += "\t\t" + v + ",\n"
+		if q["name"] not in extSet:
+			v = qdef.genQstr(q["name"])
+			s += "\t\t" + v + ",\n"
 	
 	s += """\t},
 };
