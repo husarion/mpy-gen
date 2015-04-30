@@ -99,12 +99,14 @@ class ParserContext:
 	inclues = None
 	namespaces = None
 	strStartNum = None
+	subContexts = None
 
 	def __init__(self):
 		self.objClasses = []
 		self.objGlobals = []
 		self.inclues = []
 		self.namespaces = []
+		self.subContexts = []
 
 	def addClass(self, o):
 		self.objClasses.append(o)
@@ -125,7 +127,25 @@ class ParserContext:
 				return True
 		return False
 
+	def getExternQstrs(self):
+		qstrs = []
+		for subCtx in self.subContexts:
+			qstrs += subCtx.qstrs
+		return qstrs
+
 	def parseData(self, txt, extern = False):
+		if extern:
+			newCtx = ParserContext()
+			r = newCtx.parseDataInternal(txt, True)
+			self.subContexts.append(newCtx)
+			self.objClasses += newCtx.objClasses
+			self.objGlobals += newCtx.objGlobals
+			return r
+		else:
+			return self.parseDataInternal(txt, False)
+
+	def parseDataInternal(self, txt, markAsExtern):
+
 		lines = txt.split("\n")
 
 		for line in lines:
@@ -135,19 +155,19 @@ class ParserContext:
 
 			(cmd, rest) = parseLine(line)
 
-			if not extern and cmd == "name":
+			if cmd == "name":
 				parts = rest.split(":")
 				self.name = parts[0]
 
-			if not extern and cmd == "include":
+			if cmd == "include":
 				parts = rest.split(":")
 				self.inclues.append(parts[0])
 
-			if not extern and cmd == "namespace":
+			if cmd == "namespace":
 				parts = rest.split(":")
 				self.namespaces.append(parts[0])
 
-			if not extern and cmd == "num":
+			if cmd == "num":
 				parts = rest.split(":")
 				self.strStartNum = int(parts[0], 0)
 
@@ -156,14 +176,14 @@ class ParserContext:
 				objType = parts[0]
 				objName = parts[1]
 
-				self.addGlobal({'type': objType, 'name': objName, 'extern': extern})
+				self.addGlobal({'type': objType, 'name': objName, 'extern': markAsExtern})
 
 			if cmd == "class":
 				parts = rest.split(":")
 				objName = parts[0]
 				print("new class", objName)
 				curObj = Class()
-				curObj.extern = extern
+				curObj.extern = markAsExtern
 				curObj.name = objName
 				curObj.storeValue = False
 				curObj.methods = []
@@ -177,7 +197,7 @@ class ParserContext:
 						curObj.methods += baseClass.methods
 						curObj.parents.append(baseClass)
 
-			if not extern and cmd == "method":
+			if cmd == "method":
 				if curObj is None:
 					continue
 
@@ -191,7 +211,7 @@ class ParserContext:
 				curObj.removeMethod(objMethod.name)
 				curObj.methods.append(objMethod)
 
-			if not extern and cmd == "constructor":
+			if cmd == "constructor":
 				parts = rest.split(":")
 
 				objMethod = Method()
@@ -211,7 +231,7 @@ class ParserContext:
 				curObj.removeMethod(objMethod.name)
 				curObj.methods.append(objMethod)
 
-			if not extern and cmd == "subscript":
+			if cmd == "subscript":
 				parts = rest.split(":")
 
 				objMethod = Method()
@@ -224,21 +244,46 @@ class ParserContext:
 				curObj.removeMethod(objMethod.name)
 				curObj.methods.append(objMethod)
 
-			if not extern and cmd == "storevalue":
+			if cmd == "storevalue":
 				curObj.storeValue = True
 
 			if cmd == "endclass":
 				self.addClass(curObj)
 				curObj = None
 
-		if not extern and self.name is None:
+		if self.name is None:
 			print("Name must be specified in export file. Eg.")
 			print("name:myproject")
 			return False
-		if not extern and self.strStartNum is None:
+		if self.strStartNum is None:
 			print("String start number must be specified in export file. Eg.")
 			print("num:0x01000000")
 			return False
+
+		qstrs = []
+		for gl in self.objGlobals:
+			qstrs.append(gl["name"])
+
+		for cl in self.objClasses:
+			qstrs.append(cl.name)
+			for m in cl.methods:
+				qstrs.append(m.name)
+
+		builtin = set(["__build_class__", "__class__", "__doc__", "__import__", "__init__", "__new__", "__locals__", "__main__", "__module__", "__name__", "__hash__", "__next__", "__qualname__", "__path__", "__repl_print__", "__bool__", "__contains__", "__enter__", "__exit__", "__len__", "__iter__", "__getitem__", "__setitem__", "__delitem__", "__add__", "__sub__", "__repr__", "__str__", "__getattr__", "__del__", "__call__", "__lt__", "__gt__", "__eq__", "__le__", "__ge__", "__reversed__", "micropython", "bytecode", "const", "builtins", "Ellipsis", "StopIteration", "BaseException", "ArithmeticError", "AssertionError", "AttributeError", "BufferError", "EOFError", "Exception", "FileExistsError", "FileNotFoundError", "FloatingPointError", "GeneratorExit", "ImportError", "IndentationError", "IndexError", "KeyboardInterrupt", "KeyError", "LookupError", "MemoryError", "NameError", "NotImplementedError", "OSError", "OverflowError", "RuntimeError", "SyntaxError", "SystemExit", "TypeError", "UnboundLocalError", "ValueError", "ZeroDivisionError", "None", "False", "True", "object", "NoneType", "abs", "all", "any", "args", "bin", "{:#b}", "bool", "bytes", "callable", "chr", "classmethod", "_collections", "complex", "real", "imag", "dict", "dir", "divmod", "enumerate", "eval", "exec", "filter", "float", "from_bytes", "getattr", "setattr", "globals", "hasattr", "hash", "hex", "%#x", "id", "int", "isinstance", "issubclass", "iter", "len", "list", "locals", "map", "max", "min", "namedtuple", "next", "oct", "%#o", "open", "ord", "path", "pow", "print", "range", "read", "repr", "reversed", "round", "sorted", "staticmethod", "sum", "super", "str", "sys", "to_bytes", "tuple", "type", "value", "write", "zip", "sep", "end", "step", "stop", "clear", "copy", "fromkeys", "get", "items", "keys", "pop", "popitem", "setdefault", "update", "values", "append", "close", "send", "throw", "count", "extend", "index", "remove", "insert", "sort", "join", "strip", "lstrip", "rstrip", "format", "key", "reverse", "add", "find", "rfind", "rindex", "split", "rsplit", "startswith", "endswith", "replace", "partition", "rpartition", "lower", "upper", "isspace", "isalpha", "isdigit", "isupper", "islower", "iterable", "start", "bound_method", "closure", "dict_view", "function", "generator", "iterator", "module", "slice", "math", "e", "pi", "sqrt", "exp", "expm1", "log", "log2", "log10", "cosh", "sinh", "tanh", "acosh", "asinh", "atanh", "cos", "sin", "tan", "acos", "asin", "atan", "atan2", "ceil", "copysign", "fabs", "fmod", "floor", "isfinite", "isinf", "isnan", "trunc", "modf", "frexp", "ldexp", "degrees", "radians", "maximum recursion depth exceeded", "<module>", "<lambda>", "<listcomp>", "<dictcomp>", "<setcomp>", "<genexpr>", "<string>", "<stdin>"])
+		qstrs = set(qstrs)
+		qstrs -= builtin
+
+		curNum = self.strStartNum
+		self.qstrs = []
+		for q in qstrs:
+			self.qstrs.append({ "num": curNum, "name": q })
+			curNum += 1
+
+		# self.externQstrs = set(self.externQstrs)
+		# self.externQstrs -= builtin
+		# self.commonQstrs = self.qstrs & self.externQstrs
+		# self.qstrs = self.qstrs - self.externQstrs
+
 		return True
 
 def parseRetType(ret):

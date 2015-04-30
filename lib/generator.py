@@ -1,38 +1,28 @@
 import sys
 from . import qdef, func_generator
 
-def findQstrs(ctx):
-	qstrs = []
-	for gl in ctx.objGlobals:
-		if gl["extern"]:
-			continue
-		qstrs.append(gl["name"])
-	for cl in ctx.objClasses:
-		if cl.extern:
-			continue
-		qstrs.append(cl.name)
-		for m in cl.methods:
-			qstrs.append(m.name)
-	
-	qstrs = set(qstrs)
-	qstrs -= set(["__build_class__", "__class__", "__doc__", "__import__", "__init__", "__new__", "__locals__", "__main__", "__module__", "__name__", "__hash__", "__next__", "__qualname__", "__path__", "__repl_print__", "__bool__", "__contains__", "__enter__", "__exit__", "__len__", "__iter__", "__getitem__", "__setitem__", "__delitem__", "__add__", "__sub__", "__repr__", "__str__", "__getattr__", "__del__", "__call__", "__lt__", "__gt__", "__eq__", "__le__", "__ge__", "__reversed__", "micropython", "bytecode", "const", "builtins", "Ellipsis", "StopIteration", "BaseException", "ArithmeticError", "AssertionError", "AttributeError", "BufferError", "EOFError", "Exception", "FileExistsError", "FileNotFoundError", "FloatingPointError", "GeneratorExit", "ImportError", "IndentationError", "IndexError", "KeyboardInterrupt", "KeyError", "LookupError", "MemoryError", "NameError", "NotImplementedError", "OSError", "OverflowError", "RuntimeError", "SyntaxError", "SystemExit", "TypeError", "UnboundLocalError", "ValueError", "ZeroDivisionError", "None", "False", "True", "object", "NoneType", "abs", "all", "any", "args", "bin", "{:#b}", "bool", "bytes", "callable", "chr", "classmethod", "_collections", "complex", "real", "imag", "dict", "dir", "divmod", "enumerate", "eval", "exec", "filter", "float", "from_bytes", "getattr", "setattr", "globals", "hasattr", "hash", "hex", "%#x", "id", "int", "isinstance", "issubclass", "iter", "len", "list", "locals", "map", "max", "min", "namedtuple", "next", "oct", "%#o", "open", "ord", "path", "pow", "print", "range", "read", "repr", "reversed", "round", "sorted", "staticmethod", "sum", "super", "str", "sys", "to_bytes", "tuple", "type", "value", "write", "zip", "sep", "end", "step", "stop", "clear", "copy", "fromkeys", "get", "items", "keys", "pop", "popitem", "setdefault", "update", "values", "append", "close", "send", "throw", "count", "extend", "index", "remove", "insert", "sort", "join", "strip", "lstrip", "rstrip", "format", "key", "reverse", "add", "find", "rfind", "rindex", "split", "rsplit", "startswith", "endswith", "replace", "partition", "rpartition", "lower", "upper", "isspace", "isalpha", "isdigit", "isupper", "islower", "iterable", "start", "bound_method", "closure", "dict_view", "function", "generator", "iterator", "module", "slice", "math", "e", "pi", "sqrt", "exp", "expm1", "log", "log2", "log10", "cosh", "sinh", "tanh", "acosh", "asinh", "atanh", "cos", "sin", "tan", "acos", "asin", "atan", "atan2", "ceil", "copysign", "fabs", "fmod", "floor", "isfinite", "isinf", "isnan", "trunc", "modf", "frexp", "ldexp", "degrees", "radians", "maximum recursion depth exceeded", "<module>", "<lambda>", "<listcomp>", "<dictcomp>", "<setcomp>", "<genexpr>", "<string>", "<stdin>"])
-
-	return qstrs
-
-def genQstrEnum(ctx, qstrs):
+def genQstrEnum(ctx):
 	s = """
 enum
 {{
-	MP_{ctx.name}_start = 0x{ctx.strStartNum:08x} - 1,
 """.format(ctx=ctx)
 
-	for q in qstrs:
-		s += "\tMP_QSTR_" + q + ",\n"
+	ext = ctx.getExternQstrs()
+	extSet = set([i["name"] for i in ext])
+	qstrsSet = set([i["name"] for i in ctx.qstrs])
 
-	s += "\n};\n"
+	for q in ext:
+		if q["name"] in qstrsSet:
+			s += "\tMP_QSTR_{q[name]} = 0x{q[num]:08x},\n".format(q=q)
+
+	for q in ctx.qstrs:
+		if q["name"] not in extSet:
+			s += "\tMP_QSTR_{q[name]} = 0x{q[num]:08x},\n".format(q=q)
+
+	s += "};\n"
 	return s
 
-def genQstrPool(ctx, qstrs):
+def genQstrPool(ctx):
 	s = """
 qstr_pool_t {ctx.name}_pool =
 {{
@@ -42,9 +32,9 @@ qstr_pool_t {ctx.name}_pool =
 	{cnt}, // corresponds to number of strings in array just below
 	0x{ctx.strStartNum:08x},
 	{{
-""".format(cnt=len(qstrs), ctx=ctx)
-	for q in qstrs:
-		v = qdef.genQstr(q)
+""".format(cnt=len(ctx.qstrs), ctx=ctx)
+	for q in ctx.qstrs:
+		v = qdef.genQstr(q["name"])
 		s += "\t\t" + v + ",\n"
 	
 	s += """\t},

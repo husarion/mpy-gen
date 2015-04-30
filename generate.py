@@ -18,8 +18,6 @@ for externPath in args.extern:
 	if not ctx.parseData(data, True):
 		exit(1)
 
-qstrs = generator.findQstrs(ctx)
-
 name = ctx.name
 
 if args.outdir is None:
@@ -62,7 +60,7 @@ typedef struct _mp_obj_hObject_t
 }} mp_obj_hObject_t;
 """.lstrip().format(name=name).encode("ascii"))
 
-t = generator.genQstrEnum(ctx, qstrs)
+t = generator.genQstrEnum(ctx)
 header.write(t.encode("ascii"))
 
 t = """
@@ -90,7 +88,7 @@ srcC.write("""
 
 """.lstrip().format(name=name).encode("ascii"))
 
-t = generator.genQstrPool(ctx, qstrs)
+t = generator.genQstrPool(ctx)
 srcC.write(t.encode("ascii"))
 
 for cl in ctx.objClasses:
