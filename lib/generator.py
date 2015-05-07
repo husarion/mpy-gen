@@ -12,9 +12,11 @@ def genQstrEnum(ctx):
 		if q["name"] in qstrsSet:
 			s += "\tMP_QSTR_{q[name]} = 0x{q[num]:08x},\n".format(q=q)
 
+	num = ctx.strStartNum
 	for q in ctx.qstrs:
 		if q["name"] not in extSet:
-			s += "\tMP_QSTR_{q[name]} = 0x{q[num]:08x},\n".format(q=q)
+			s += "\tMP_QSTR_{q[name]} = 0x{num:08x},\n".format(q=q, num=num)
+			num += 1
 
 	s += "};\n"
 	return s
